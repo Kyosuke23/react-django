@@ -1,0 +1,89 @@
+############################
+# OS / Editor
+############################
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+############################
+# Python / Django
+############################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+.env
+.env.*
+!.env.example
+
+*.log
+
+# Django
+staticfiles/
+media/
+local_settings.py
+
+# SQLite（使わない想定でも念のため）
+db.sqlite3
+
+############################
+# Python venv
+############################
+venv/
+.venv/
+ENV/
+env/
+
+############################
+# Node / React (Vite)
+############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+dist/
+build/
+
+############################
+# Docker
+############################
+# ローカルで作らいがちなもの
+docker-data/
+docker-volume/
+*.pid
+
+# override系（個人差が出やすい）
+docker-compose.override.yml
+
+############################
+# Postgres / pgAdmin
+############################
+pgdata/
+pgadmin-data/
+
+############################
+# Test / Coverage
+############################
+.coverage
+htmlcov/
+pytest_cache/
+.tox/
+.nox/
+
+############################
+# Misc
+############################
+*.tmp
+*.bak
+*.orig
+
+memo.txt
