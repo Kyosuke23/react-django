@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
+import Login from "./pages/Login";
 
 function NavItem({ to, label }: { to: string; label: string }) {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <nav className="flex gap-2">
             <NavItem to="/" label="Home" />
             <NavItem to="/api-check" label="API Check" />
+            <NavItem to="/login" label="Login" /> {/* 追加 */}
           </nav>
         </div>
       </header>
@@ -37,6 +39,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/api-check" element={<ApiCheck />} />
+          <Route path="/login" element={<Login />} /> {/* 追加 */}
         </Routes>
       </main>
     </div>
