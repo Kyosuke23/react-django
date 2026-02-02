@@ -1,22 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-type LoginResponse = {
-  // JWTなどを想定（後で合わせる）
-  access?: string;
-  refresh?: string;
-};
+type LoginResponse = { access: string; refresh: string };
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
+  // ログイン済みなら / に飛ばす（おまけ）
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (token) navigate("/");
+  }, [navigate]);
+
+  const [username, setUsername] = useState(""); // ← username として扱う
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [okMessage, setOkMessage] = useState("");
 
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 0 && password.length > 0 && !loading;
-  }, [email, password, loading]);
+  const canSubmit = useMemo(
+    () => username.trim().length > 0 && password.length > 0 && !loading,
+    [username, password, loading]
+  );
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,12 +31,10 @@ export default function Login() {
     try {
       setLoading(true);
 
-      // ここが後で本物の認証APIに置き換わるポイント
-      // 例：/api/auth/login/ など（まだ無いなら 404 になるのは正常）
       const res = await fetch("/api/auth/login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (!res.ok) {
@@ -41,11 +44,12 @@ export default function Login() {
 
       const json = (await res.json()) as LoginResponse;
 
-      // 例：トークンが来たら保存（後で方式が決まったら調整）
-      if (json.access) localStorage.setItem("accessToken", json.access);
-      if (json.refresh) localStorage.setItem("refreshToken", json.refresh);
+      // ここが重要：access と refresh を分けて保存
+      localStorage.setItem("accessToken", json.access);
+      localStorage.setItem("refreshToken", json.refresh);
 
-      setOkMessage("ログイン成功（仮）");
+      setOkMessage("ログイン成功");
+      setTimeout(() => navigate("/"), 200);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -59,22 +63,23 @@ export default function Login() {
         <div>
           <h1 className="text-2xl font-bold">Login</h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Django API のログイン（次にバックエンド実装で繋ぎます）
           </p>
         </div>
 
-        <form className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 space-y-4">
+        <form
+          onSubmit={onSubmit}
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 space-y-4"
+        >
           <div className="space-y-2">
-            <label className="text-sm font-medium">Email</label>
+            <label className="text-sm font-medium">Username</label>
             <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none
-                        focus:ring-2 focus:ring-slate-400
-                        dark:border-slate-700 dark:bg-slate-950/40 dark:focus:ring-slate-600"
-              placeholder="you@example.com"
+                         focus:ring-2 focus:ring-slate-400
+                         dark:border-slate-700 dark:bg-slate-950/40 dark:focus:ring-slate-600"
+              placeholder="root"
             />
           </div>
 
@@ -82,13 +87,13 @@ export default function Login() {
             <label className="text-sm font-medium">Password</label>
             <input
               type="password"
-              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none
-                        focus:ring-2 focus:ring-slate-400
-                        dark:border-slate-700 dark:bg-slate-950/40 dark:focus:ring-slate-600"
-              placeholder="••••••••"
+                         focus:ring-2 focus:ring-slate-400
+                         dark:border-slate-700 dark:bg-slate-950/40 dark:focus:ring-slate-600"
+              placeholder="rootroot"
             />
           </div>
 
@@ -108,15 +113,11 @@ export default function Login() {
             type="submit"
             disabled={!canSubmit}
             className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white
-                      hover:bg-slate-800 disabled:opacity-50
-                      dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
+                       hover:bg-slate-800 disabled:opacity-50
+                       dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
-
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            ※ まだ Django 側のログインAPIが無い場合は 404 になります（次に作ります）
-          </p>
         </form>
       </div>
     </div>
