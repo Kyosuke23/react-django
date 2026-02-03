@@ -3,33 +3,19 @@ import type { Tenant } from "../../lib/tenants";
 import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
-type SortKey = "tenant_name" | "representative_name" | "email" | "tel_number";
-type SortDir = "asc" | "desc";
+import DataTable from "../../components/DataTable";
+import type { SortDir } from "../../components/DataTable";
+import SlideOver from "../../components/SlideOver";
+import { useDisclosure } from "../../hooks/useDisclosure";
 
-function SortableTh(props: {
-  label: string;
-  sortKey: SortKey;
-  activeKey: SortKey;
-  activeDir: SortDir;
-  onClick: (k: SortKey) => void;
-}) {
-  const { label, sortKey, activeKey, activeDir, onClick } = props;
-  const isActive = sortKey === activeKey;
-
-  return (
-    <th
-      className="text-left p-3 select-none cursor-pointer hover:bg-white/5"
-      onClick={() => onClick(sortKey)}
-    >
-      <div className="inline-flex items-center gap-1">
-        <span>{label}</span>
-        {isActive && (
-          <span className="text-[10px] text-white/55">{activeDir === "asc" ? "▲" : "▼"}</span>
-        )}
-      </div>
-    </th>
-  );
-}
+type SortKey =
+  | "tenant_code"
+  | "tenant_name"
+  | "representative_name"
+  | "email"
+  | "tel_number"
+  | "created_at"
+  | "updated_at";
 
 export default function TenantList() {
   const [q, setQ] = useState("");
@@ -41,15 +27,18 @@ export default function TenantList() {
   const [sortKey, setSortKey] = useState<SortKey>("tenant_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
+  // slide-over open/close
+  const detail = useDisclosure(false);
+
   const ordering = useMemo(() => {
     return sortDir === "asc" ? sortKey : `-${sortKey}`;
   }, [sortKey, sortDir]);
 
-  const onClickSort = useCallback(
-    (key: SortKey) => {
-      if (key === sortKey) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-      } else {
+  const onSort = useCallback(
+    (serverSortKey: string) => {
+      const key = serverSortKey as SortKey;
+      if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      else {
         setSortKey(key);
         setSortDir("asc");
       }
@@ -57,253 +46,271 @@ export default function TenantList() {
     [sortKey]
   );
 
+  const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
+
+  const openDetail = useCallback(
+    (t: Tenant) => {
+      setSelectedId(t.id);
+      detail.open();
+    },
+    [detail]
+  );
+
   const reload = useCallback(async () => {
     const data = await listTenants({ q, include_deleted: includeDeleted, ordering });
     setRows(data);
-    if (selectedId && !data.some((r) => r.id === selectedId)) setSelectedId(null);
-  }, [q, includeDeleted, ordering, selectedId]);
+
+    // If selected row disappeared (filtered out), close panel.
+    if (selectedId && !data.some((r) => r.id === selectedId)) {
+      setSelectedId(null);
+      detail.close();
+    }
+  }, [q, includeDeleted, ordering, selectedId, detail]);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  const selected = useMemo(
-    () => rows.find((r) => r.id === selectedId) ?? null,
-    [rows, selectedId]
+  const onClickDelete = useCallback(
+    async (id: number) => {
+      if (!confirm("このテナントを削除しますか？")) return;
+      await deleteTenant(id);
+      await reload();
+    },
+    [reload]
   );
 
-  const totalCount = rows.length;
-  const deletedCount = rows.filter((r) => r.is_deleted).length;
+  const onClickRestore = useCallback(
+    async (id: number) => {
+      if (!confirm("このテナントを復元しますか？")) return;
+      await restoreTenant(id);
+      await reload();
+    },
+    [reload]
+  );
+
+  const columns = useMemo(
+    () => [
+      {
+        id: "tenant",
+        label: "テナント",
+        sortKey: "tenant_name",
+        render: (t: Tenant) => (
+          <div className="min-w-0">
+            <div className="font-medium text-slate-100 truncate">{t.tenant_name}</div>
+          </div>
+        ),
+      },
+      { id: "rep", label: "代表者", sortKey: "representative_name", render: (t: Tenant) => t.representative_name },
+      { id: "email", label: "Email", sortKey: "email", render: (t: Tenant) => <span className="break-all">{t.email}</span> },
+      { id: "tel", label: "電話", sortKey: "tel_number", render: (t: Tenant) => t.tel_number ?? "-" },
+      {
+        id: "actions",
+        label: "",
+        render: (t: Tenant) => (
+          <div className="flex items-center justify-end gap-2">
+            <button
+              className="rounded-lg p-2 hover:bg-slate-100"
+              title="編集"
+              onClick={(e) => {
+                e.stopPropagation();
+                // TODO: 編集画面へ遷移（親で扱いたいなら onEdit を props 化する）
+                alert("編集は未実装です");
+              }}
+            >
+              <PencilSquareIcon className="h-5 w-5 text-slate-600" />
+            </button>
+
+            {!t.is_deleted ? (
+              <button
+                className="rounded-lg p-2 hover:bg-slate-100"
+                title="削除"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClickDelete(t.id);
+                }}
+              >
+                <TrashIcon className="h-5 w-5 text-rose-600" />
+              </button>
+            ) : (
+              <button
+                className="rounded-lg px-3 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClickRestore(t.id);
+                }}
+              >
+                復元
+              </button>
+            )}
+          </div>
+        ),
+        thClassName: "text-right",
+        tdClassName: "text-right",
+      },
+    ],
+    [onClickDelete, onClickRestore]
+  );
 
   return (
-    <div className="h-full flex gap-3">
-      {/* Main table area */}
-      <div className="flex-1 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
-        {/* Title area */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-base font-semibold text-white/90">テナントマスタ管理</h1>
-              <p className="dark:text-slate-400">テナント情報の管理ページ</p>
-              <div className="mt-1 text-xs text-white/55">
-                {includeDeleted ? (
-                  <>
-                    表示中: {totalCount} 件（削除 {deletedCount} 件含む）
-                  </>
-                ) : (
-                  <>表示中: {totalCount} 件</>
-                )}
-              </div>
-            </div>
-
-            <button
-              className="rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 px-3 py-2 text-sm text-white"
-              onClick={() => alert("ここで追加モーダルを開く")}
-            >
-              + New
-            </button>
-          </div>
-        </div>
-
-        {/* Search area (under title) */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
-          <div className="flex-1 min-w-0">
+    <div className="h-full flex flex-col min-h-0 gap-4 p-4">
+      <h1 className="text-2xl font-bold">テナントマスタ管理</h1>
+      <div className="text-xs text-slate-400">テナント情報管理ページ</div>
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* 検索 */}
+          <div className="w-full sm:w-96">
+            <label className="block text-xs text-slate-300 mb-1">検索</label>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search (name / email / tel)"
-              className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none"
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
+              placeholder="テナント名 / コード / Email / 電話…"
             />
           </div>
 
-          <label className="text-xs text-white/70 flex items-center gap-2 select-none whitespace-nowrap">
+          {/* 削除済みチェック */}
+          <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer mt-1 sm:mt-6">
             <input
               type="checkbox"
               checked={includeDeleted}
               onChange={(e) => setIncludeDeleted(e.target.checked)}
+              className="h-4 w-4"
             />
-            show deleted
+            <span>削除済みを含める</span>
           </label>
         </div>
 
-        {/* Table scroll area */}
-        <div
-          className={[
-            "flex-1 overflow-auto",
-            "[scrollbar-width:thin]",
-            "[scrollbar-color:rgba(255,255,255,0.20)_transparent]",
-            "[&::-webkit-scrollbar]:w-2",
-            "[&::-webkit-scrollbar]:h-2",
-            "[&::-webkit-scrollbar-track]:bg-transparent",
-            "[&::-webkit-scrollbar-thumb]:bg-white/10",
-            "[&::-webkit-scrollbar-thumb]:rounded-full",
-            "[&::-webkit-scrollbar-thumb:hover]:bg-white/20",
-          ].join(" ")}
-        >
-          <table className="w-full text-sm text-white/85">
-            <thead className="sticky top-0 bg-[#0b1220]">
-              <tr className="text-xs text-white/55 border-b border-white/10">
-                <SortableTh
-                  label="Tenant"
-                  sortKey="tenant_name"
-                  activeKey={sortKey}
-                  activeDir={sortDir}
-                  onClick={onClickSort}
-                />
-                <SortableTh
-                  label="Representative"
-                  sortKey="representative_name"
-                  activeKey={sortKey}
-                  activeDir={sortDir}
-                  onClick={onClickSort}
-                />
-                <SortableTh
-                  label="Email"
-                  sortKey="email"
-                  activeKey={sortKey}
-                  activeDir={sortDir}
-                  onClick={onClickSort}
-                />
-                <SortableTh
-                  label="Tel"
-                  sortKey="tel_number"
-                  activeKey={sortKey}
-                  activeDir={sortDir}
-                  onClick={onClickSort}
-                />
-                <th className="text-left p-3">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {rows.map((r) => {
-                const active = r.id === selectedId;
-                return (
-                  <tr
-                    key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className={[
-                      "border-b border-white/5 cursor-pointer",
-                      active ? "bg-white/10" : "hover:bg-white/5",
-                      r.is_deleted ? "opacity-60" : "",
-                    ].join(" ")}
-                  >
-                    <td className="p-3">
-                      <div className="font-medium">{r.tenant_name}</div>
-                      <div className="text-[11px] text-white/45 break-all">{r.tenant_code}</div>
-                    </td>
-                    <td className="p-3">{r.representative_name}</td>
-                    <td className="p-3">{r.email}</td>
-                    <td className="p-3">{r.tel_number ?? ""}</td>
-
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="h-8 w-8 grid place-items-center rounded-lg bg-white/10 hover:bg-white/15 border border-white/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            alert("編集モーダル");
-                          }}
-                          title="Edit"
-                        >
-                          <PencilSquareIcon className="h-4 w-4 text-blue-300" />
-                        </button>
-
-                        <button
-                          className="h-8 w-8 grid place-items-center rounded-lg bg-white/10 hover:bg-white/15 border border-white/10"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (r.is_deleted) {
-                              await restoreTenant(r.id);
-                            } else {
-                              await deleteTenant(r.id);
-                            }
-                            await reload();
-                          }}
-                          title={r.is_deleted ? "Restore" : "Delete"}
-                        >
-                          <TrashIcon className="h-4 w-4 text-red-300" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-6 text-center text-white/50">
-                    No tenants
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Mobile sort (optional) */}
+        <div className="sm:hidden flex items-center gap-2">
+          <select
+            className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+          >
+            <option value="tenant_name">テナント</option>
+            <option value="representative_name">代表者</option>
+            <option value="email">Email</option>
+            <option value="tel_number">電話</option>
+            <option value="created_at">作成日</option>
+            <option value="updated_at">更新日</option>
+          </select>
+          <button
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            title="昇順/降順"
+          >
+            {sortDir === "asc" ? "▲" : "▼"}
+          </button>
         </div>
       </div>
 
-      {/* Detail area */}
-      <div className="w-[360px] shrink-0 rounded-xl border border-white/10 bg-[#0b1220] p-4">
-        {selected ? (
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs text-white/50">Tenant</div>
-              <div className="text-lg font-semibold text-white/90">{selected.tenant_name}</div>
-              <div className="text-xs text-white/50 break-all">{selected.tenant_code}</div>
-            </div>
+      {/* Content */}
+      <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
+        {/* Desktop table */}
+        <div className="hidden sm:block flex-1 min-h-0">
+          <DataTable<Tenant>
+            rows={rows}
+            columns={columns}
+            className="h-full"
+            rowKey={(t) => t.id}
+            activeSortKey={sortKey}
+            activeSortDir={sortDir}
+            onSort={onSort}
+            onRowClick={openDetail}
+            rowClassName={(t) => (t.is_deleted ? "opacity-60" : "")}
+          />
+        </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Representative</div>
-                <div className="text-sm text-white/85 break-all">{selected.representative_name}</div>
+        {/* Mobile cards */}
+        <div className="sm:hidden flex-1 min-h-0 overflow-auto space-y-2 pb-2">
+          {rows.map((t) => (
+            <button
+              key={t.id}
+              className={[
+                "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
+                "active:scale-[0.99] transition",
+                t.is_deleted ? "opacity-60" : "",
+              ].join(" ")}
+              onClick={() => openDetail(t)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-slate-200/900 truncate">{t.tenant_name}</div>
+                  <div className="mt-2 text-xs text-slate-200/90 truncate">{t.email}</div>
+                  <div className="text-xs text-slate-200/80">{t.tel_number ?? "-"}</div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2">
+                  <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
+                    {t.is_deleted ? "削除済み" : "有効"}
+                  </span>
+                </div>
               </div>
-
-              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Email</div>
-                <div className="text-sm text-white/85 break-all">{selected.email}</div>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Tel</div>
-                <div className="text-sm text-white/85">{selected.tel_number ?? ""}</div>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Postal</div>
-                <div className="text-sm text-white/85">{selected.postal_code ?? ""}</div>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">State</div>
-                <div className="text-sm text-white/85">{selected.state ?? ""}</div>
-              </div>
-
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">City</div>
-                <div className="text-sm text-white/85">{selected.city ?? ""}</div>
-              </div>
-
-              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Address</div>
-                <div className="text-sm text-white/85 break-all">{selected.address ?? ""}</div>
-              </div>
-
-              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Address2</div>
-                <div className="text-sm text-white/85 break-all">{selected.address2 ?? ""}</div>
-              </div>
-
-            </div>
-
-            <div className="pt-2 text-xs text-white/45">
-              <div>created: {selected.created_at}</div>
-              <div>updated: {selected.updated_at}</div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-white/60">Select a row</div>
-        )}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Detail slide-over */}
+      <SlideOver
+        open={detail.isOpen}
+        onClose={detail.close}
+        subtitle="テナント詳細"
+        title={selected?.tenant_name ?? ""}
+      >
+        <div className="p-4 space-y-3">
+          {selected ? (
+            <dl className="space-y-3">
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">コード</dt>
+                <dd className="text-sm font-medium break-all">
+                  {selected.tenant_code}
+                </dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">代表者</dt>
+                <dd className="text-sm">
+                  {selected.representative_name}
+                </dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">Email</dt>
+                <dd className="text-sm break-all">
+                  {selected.email}
+                </dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">電話</dt>
+                <dd className="text-sm">
+                  {selected.tel_number ?? "-"}
+                </dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">住所</dt>
+                <dd className="text-sm">
+                  {[
+                    selected.postal_code ? `〒${selected.postal_code}` : null,
+                    selected.state,
+                    selected.city,
+                    selected.address,
+                    selected.address2,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <div className="text-sm text-slate-500">行を選択してください</div>
+          )}
+        </div>
+      </SlideOver>
     </div>
   );
 }
