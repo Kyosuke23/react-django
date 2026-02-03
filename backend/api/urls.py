@@ -7,9 +7,11 @@ urlpatterns = [
 
     # JWT
     # path("auth/login/", TokenObtainPairView.as_view()),
-     path("auth/login/", EmailTokenObtainPairView.as_view()),
+    path("auth/login/", EmailTokenObtainPairView.as_view()),
     path("auth/refresh/", TokenRefreshView.as_view()),
 
     # 認証確認用
     path("me/", me),
+
+    #
 ]

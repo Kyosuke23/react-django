@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
 import Login from "./pages/Login";
+import TenantList from "./pages/TenantList";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { clearTokens, getAccessToken } from "./lib/api";
 
@@ -59,7 +60,8 @@ export default function App() {
             {loggedIn && (
               <>
                 <NavItem to="/" label="Home" />
-                <NavItem to="/api-check" label="API Check" />
+                <NavItem to="/api_check" label="API Check" />
+                <NavItem to="/tenant_list" label="テナントマスタ" />
                 <button
                   onClick={logout}
                   className="rounded-md px-3 py-2 text-sm font-semibold
@@ -77,10 +79,10 @@ export default function App() {
       <main className="mx-auto w-full max-w-5xl px-4 py-8">
         <Routes>
           <Route path="/login" element={<Login />} />
-
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Home />} />
-            <Route path="/api-check" element={<ApiCheck />} />
+            <Route path="/api_check" element={<ApiCheck />} />
+            <Route path="/tenant_list" element={<TenantList />} />
           </Route>
         </Routes>
       </main>
