@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Tenant } from "../../lib/tenants";
-import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
+import { listTenantsPaged, deleteTenant, restoreTenant } from "../../lib/tenants";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
-
 import DataTable from "../../components/DataTable";
 import type { SortDir } from "../../components/DataTable";
 import SlideOver from "../../components/SlideOver";
 import { useDisclosure } from "../../hooks/useDisclosure";
+import Pagination from "../../components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
 
 type SortKey =
   | "tenant_code"
@@ -26,6 +28,15 @@ export default function TenantList() {
   // --- sort state ---
   const [sortKey, setSortKey] = useState<SortKey>("tenant_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // --- Pagination ---
+  const [page, setPage] = useState(1);
+  const pageRows = useMemo(() => {
+    const start = (page - 1) * DEFAULT_PAGE_SIZE;
+    return rows.slice(start, start + DEFAULT_PAGE_SIZE);
+  }, [rows, page]);
+  const [totalCount, setTotalCount] = useState(0);
+  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE });
 
   // slide-over open/close
   const detail = useDisclosure(false);
@@ -57,11 +68,18 @@ export default function TenantList() {
   );
 
   const reload = useCallback(async () => {
-    const data = await listTenants({ q, include_deleted: includeDeleted, ordering });
-    setRows(data);
+    const data = await listTenantsPaged({
+      q,
+      include_deleted: includeDeleted,
+      ordering,
+      page,
+      page_size: DEFAULT_PAGE_SIZE,
+    });
+    setRows(data.items);
+    setTotalCount(data.count);
 
     // If selected row disappeared (filtered out), close panel.
-    if (selectedId && !data.some((r) => r.id === selectedId)) {
+    if (selectedId && !data.items.some((r) => r.id === selectedId)) {
       setSelectedId(null);
       detail.close();
     }
@@ -70,6 +88,11 @@ export default function TenantList() {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Reset to page 1 when filter/sort changes
+  useEffect(() => {
+    pager.reset();
+  }, [q, includeDeleted, sortKey, sortDir]);
 
   const onClickDelete = useCallback(
     async (id: number) => {
@@ -211,7 +234,7 @@ export default function TenantList() {
         {/* Desktop table */}
         <div className="hidden sm:block flex-1 min-h-0">
           <DataTable<Tenant>
-            rows={rows}
+            rows={pageRows}
             columns={columns}
             className="h-full"
             rowKey={(t) => t.id}
@@ -220,6 +243,12 @@ export default function TenantList() {
             onSort={onSort}
             onRowClick={openDetail}
             rowClassName={(t) => (t.is_deleted ? "opacity-60" : "")}
+          />
+          <Pagination
+            page={page}
+            pageSize={DEFAULT_PAGE_SIZE}
+            totalCount={totalCount}
+            onPageChange={setPage}
           />
         </div>
 

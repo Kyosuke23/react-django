@@ -23,6 +23,8 @@ type ListParams = {
   q?: string;
   include_deleted?: boolean;
   ordering?: string;
+  page?: number;
+  page_size?: number;
 };
 
 function buildQuery(params?: ListParams) {
@@ -30,6 +32,8 @@ function buildQuery(params?: ListParams) {
   if (params?.q) sp.set("q", params.q);
   if (params?.include_deleted) sp.set("include_deleted", "1");
   if (params?.ordering) sp.set("ordering", params.ordering);
+  if (params?.page) sp.set("page", String(params.page));
+  if (params?.page_size) sp.set("page_size", String(params.page_size));
   return sp.toString();
 }
 
@@ -84,4 +88,30 @@ export async function deleteTenant(id: number): Promise<void> {
 export async function restoreTenant(id: number): Promise<Tenant> {
   const res = await apiFetch(`/api/tenants/${id}/restore/`, { method: "POST" });
   return (await parseOrThrow(res)) as Tenant;
+}
+
+export type Paginated<T> = {
+  items: T[];
+  count: number;
+};
+
+export async function listTenantsPaged(params?: ListParams): Promise<Paginated<Tenant>> {
+  const qs = buildQuery(params);
+  const url = qs ? `/api/tenants/?${qs}` : "/api/tenants/";
+  const res = await apiFetch(url, { method: "GET" });
+  const data = await parseOrThrow(res);
+
+  // DRF pagination対応
+  if (Array.isArray(data?.results)) {
+    return {
+      items: data.results,
+      count: data.count ?? data.results.length,
+    };
+  }
+
+  // フォールバック（未ページング時）
+  return {
+    items: Array.isArray(data) ? data : [],
+    count: Array.isArray(data) ? data.length : 0,
+  };
 }
