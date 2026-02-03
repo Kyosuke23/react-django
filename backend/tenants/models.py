@@ -113,4 +113,4 @@ class Tenant(models.Model):
         return f'{self.tenant_name} ({self.tenant_code})'
 
     def get_absolute_url(self):
-        return reverse('tenant_mst:edit', kwargs={'pk': self.pk})
+        return reverse('tenants:edit', kwargs={'pk': self.pk})

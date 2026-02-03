@@ -16,16 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import health, me, EmailTokenObtainPairView
 
 
 urlpatterns = [
+    # 管理画面
     path('admin/', admin.site.urls),
 
     # 共通系
     path('api/', include('api.urls')),
 
-    # マスタ管理
-    path("api/tenants/", include("tenant_mst.urls")),
+    # マスタ系
+    path("api/tenants/", include("tenants.urls")),
 ]

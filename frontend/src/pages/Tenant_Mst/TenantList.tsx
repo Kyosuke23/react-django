@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Tenant } from "../lib/tenants";
-import { listTenants, deleteTenant, restoreTenant } from "../lib/tenants";
+import type { Tenant } from "../../lib/tenants";
+import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
 
 export default function TenantList() {
   const [q, setQ] = useState("");
