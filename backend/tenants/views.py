@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
@@ -7,6 +8,18 @@ from .serializers import TenantSerializer
 
 class TenantViewSet(viewsets.ModelViewSet):
     serializer_class = TenantSerializer
+
+    # ソート設定
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = [
+        "tenant_name",
+        "representative_name",
+        "email",
+        "tel_number",
+        "created_at",
+        "updated_at",
+    ]
+    ordering = ["tenant_name"]
 
     def get_queryset(self):
         qs = Tenant.objects.all().order_by("tenant_code")

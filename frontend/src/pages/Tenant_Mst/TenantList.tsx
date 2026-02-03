@@ -1,7 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Tenant } from "../../lib/tenants";
 import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+
+type SortKey = "tenant_name" | "representative_name" | "email" | "tel_number";
+type SortDir = "asc" | "desc";
+
+function SortableTh(props: {
+  label: string;
+  sortKey: SortKey;
+  activeKey: SortKey;
+  activeDir: SortDir;
+  onClick: (k: SortKey) => void;
+}) {
+  const { label, sortKey, activeKey, activeDir, onClick } = props;
+  const isActive = sortKey === activeKey;
+
+  return (
+    <th
+      className="text-left p-3 select-none cursor-pointer hover:bg-white/5"
+      onClick={() => onClick(sortKey)}
+    >
+      <div className="inline-flex items-center gap-1">
+        <span>{label}</span>
+        {isActive && (
+          <span className="text-[10px] text-white/55">{activeDir === "asc" ? "▲" : "▼"}</span>
+        )}
+      </div>
+    </th>
+  );
+}
 
 export default function TenantList() {
   const [q, setQ] = useState("");
@@ -9,16 +37,35 @@ export default function TenantList() {
   const [rows, setRows] = useState<Tenant[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  async function reload() {
-    const data = await listTenants({ q, include_deleted: includeDeleted });
+  // --- sort state ---
+  const [sortKey, setSortKey] = useState<SortKey>("tenant_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const ordering = useMemo(() => {
+    return sortDir === "asc" ? sortKey : `-${sortKey}`;
+  }, [sortKey, sortDir]);
+
+  const onClickSort = useCallback(
+    (key: SortKey) => {
+      if (key === sortKey) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      } else {
+        setSortKey(key);
+        setSortDir("asc");
+      }
+    },
+    [sortKey]
+  );
+
+  const reload = useCallback(async () => {
+    const data = await listTenants({ q, include_deleted: includeDeleted, ordering });
     setRows(data);
     if (selectedId && !data.some((r) => r.id === selectedId)) setSelectedId(null);
-  }
+  }, [q, includeDeleted, ordering, selectedId]);
 
   useEffect(() => {
     reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, includeDeleted]);
+  }, [reload]);
 
   const selected = useMemo(
     () => rows.find((r) => r.id === selectedId) ?? null,
@@ -83,7 +130,6 @@ export default function TenantList() {
         <div
           className={[
             "flex-1 overflow-auto",
-            // scrollbar を目立たなく（Tailwind arbitrary、プラグイン不要）
             "[scrollbar-width:thin]",
             "[scrollbar-color:rgba(255,255,255,0.20)_transparent]",
             "[&::-webkit-scrollbar]:w-2",
@@ -97,10 +143,34 @@ export default function TenantList() {
           <table className="w-full text-sm text-white/85">
             <thead className="sticky top-0 bg-[#0b1220]">
               <tr className="text-xs text-white/55 border-b border-white/10">
-                <th className="text-left p-3">Tenant</th>
-                <th className="text-left p-3">Representative</th>
-                <th className="text-left p-3">Email</th>
-                <th className="text-left p-3">Tel</th>
+                <SortableTh
+                  label="Tenant"
+                  sortKey="tenant_name"
+                  activeKey={sortKey}
+                  activeDir={sortDir}
+                  onClick={onClickSort}
+                />
+                <SortableTh
+                  label="Representative"
+                  sortKey="representative_name"
+                  activeKey={sortKey}
+                  activeDir={sortDir}
+                  onClick={onClickSort}
+                />
+                <SortableTh
+                  label="Email"
+                  sortKey="email"
+                  activeKey={sortKey}
+                  activeDir={sortDir}
+                  onClick={onClickSort}
+                />
+                <SortableTh
+                  label="Tel"
+                  sortKey="tel_number"
+                  activeKey={sortKey}
+                  activeDir={sortDir}
+                  onClick={onClickSort}
+                />
                 <th className="text-left p-3">Actions</th>
               </tr>
             </thead>
@@ -120,6 +190,7 @@ export default function TenantList() {
                   >
                     <td className="p-3">
                       <div className="font-medium">{r.tenant_name}</div>
+                      <div className="text-[11px] text-white/45 break-all">{r.tenant_code}</div>
                     </td>
                     <td className="p-3">{r.representative_name}</td>
                     <td className="p-3">{r.email}</td>
@@ -182,9 +253,14 @@ export default function TenantList() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
                 <div className="text-[11px] text-white/50">Representative</div>
-                <div className="text-sm text-white/85">{selected.representative_name}</div>
+                <div className="text-sm text-white/85 break-all">{selected.representative_name}</div>
+              </div>
+
+              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
+                <div className="text-[11px] text-white/50">Email</div>
+                <div className="text-sm text-white/85 break-all">{selected.email}</div>
               </div>
 
               <div className="rounded-lg border border-white/10 bg-black/20 p-2">
@@ -207,15 +283,16 @@ export default function TenantList() {
                 <div className="text-sm text-white/85">{selected.city ?? ""}</div>
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+              <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
                 <div className="text-[11px] text-white/50">Address</div>
-                <div className="text-sm text-white/85">{selected.address ?? ""}</div>
+                <div className="text-sm text-white/85 break-all">{selected.address ?? ""}</div>
               </div>
 
               <div className="col-span-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="text-[11px] text-white/50">Email</div>
-                <div className="text-sm text-white/85 break-all">{selected.email}</div>
+                <div className="text-[11px] text-white/50">Address2</div>
+                <div className="text-sm text-white/85 break-all">{selected.address2 ?? ""}</div>
               </div>
+
             </div>
 
             <div className="pt-2 text-xs text-white/45">

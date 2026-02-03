@@ -22,12 +22,14 @@ export type Tenant = {
 type ListParams = {
   q?: string;
   include_deleted?: boolean;
+  ordering?: string;
 };
 
 function buildQuery(params?: ListParams) {
   const sp = new URLSearchParams();
   if (params?.q) sp.set("q", params.q);
   if (params?.include_deleted) sp.set("include_deleted", "1");
+  if (params?.ordering) sp.set("ordering", params.ordering);
   return sp.toString();
 }
 
