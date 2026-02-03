@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Tenant } from "../../lib/tenants";
 import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 export default function TenantList() {
   const [q, setQ] = useState("");
@@ -57,7 +58,7 @@ export default function TenantList() {
                 <th className="text-left p-3">Representative</th>
                 <th className="text-left p-3">Email</th>
                 <th className="text-left p-3">Tel</th>
-                <th className="text-right p-3">Actions</th>
+                <th className="text-left p-3">Actions</th>
               </tr>
             </thead>
 
@@ -76,44 +77,18 @@ export default function TenantList() {
                   >
                     <td className="p-3">
                       <div className="font-medium">{r.tenant_name}</div>
-                      <div className="text-xs text-white/50">{r.tenant_code}</div>
                     </td>
                     <td className="p-3">{r.representative_name}</td>
                     <td className="p-3">{r.email}</td>
                     <td className="p-3">{r.tel_number ?? "-"}</td>
-                    <td className="p-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          className="px-2 py-1 rounded bg-white/10 hover:bg-white/15 border border-white/10"
-                          onClick={(e) => { e.stopPropagation(); alert("編集モーダル"); }}
-                        >
-                          Edit
+                    <td className="px-2 py-0 align-middle">
+                      <div className="flex gap-1">
+                        <button className="p-1 hover:bg-gray-200 rounded" title="編集">
+                          <PencilSquareIcon className="w-4 h-4 text-blue-600" />
                         </button>
-
-                        {!r.is_deleted ? (
-                          <button
-                            className="px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 border border-red-500/30"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if (!confirm(`Delete "${r.tenant_name}" ? (soft delete)`)) return;
-                              await deleteTenant(r.id);
-                              await reload();
-                            }}
-                          >
-                            Delete
-                          </button>
-                        ) : (
-                          <button
-                            className="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await restoreTenant(r.id);
-                              await reload();
-                            }}
-                          >
-                            Restore
-                          </button>
-                        )}
+                        <button className="p-1 hover:bg-red-100 rounded" title="削除">
+                          <TrashIcon className="w-4 h-4 text-red-600" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -143,18 +118,16 @@ export default function TenantList() {
               <div className="text-lg text-white font-semibold">{selected.tenant_name}</div>
               <div className="text-xs text-white/50">{selected.tenant_code}</div>
             </div>
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <Field label="Representative" value={selected.representative_name} />
-              <Field label="Email" value={selected.email} />
-              <Field label="Tel" value={selected.tel_number ?? "-"} />
-              <Field label="Postal" value={selected.postal_code ?? "-"} />
-              <Field label="State" value={selected.state ?? "-"} />
-              <Field label="City" value={selected.city ?? "-"} />
-              <Field label="Address" value={selected.address ?? "-"} />
-              <Field label="Address2" value={selected.address2 ?? "-"} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Representative" value={selected.representative_name} className="col-span-2" />
+              <Field label="Email" value={selected.email} className="col-span-2" />
+              <Field label="Tel" value={selected.tel_number ?? ""} />
+              <Field label="Postal" value={selected.postal_code ?? ""} />
+              <Field label="State" value={selected.state ?? ""} />
+              <Field label="City" value={selected.city ?? ""} />
+              <Field label="Address" value={selected.address ?? ""} className="col-span-2" />
+              <Field label="Address2" value={selected.address2 ?? ""} className="col-span-2" />
             </div>
-
             <div className="pt-2 border-t border-white/10 text-xs text-white/50">
               created: {selected.created_at}<br/>
               updated: {selected.updated_at}
@@ -166,9 +139,17 @@ export default function TenantList() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({
+  label,
+  value,
+  className = "",
+} : {
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+    <div className={`rounded-lg border border-white/10 bg-black/20 p-2 ${className}`}>
       <div className="text-xs text-white/50">{label}</div>
       <div className="text-white/85 break-words">{value}</div>
     </div>
