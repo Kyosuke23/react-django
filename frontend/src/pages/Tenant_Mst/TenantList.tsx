@@ -1,135 +1,132 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Tenant } from "../../lib/tenants";
-import { listTenants, deleteTenant, restoreTenant } from "../../lib/tenants";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { listTenants } from "../../lib/tenants";
+import { Pencil, Trash2 } from "lucide-react";
 
 export default function TenantList() {
-  const [q, setQ] = useState("");
-  const [includeDeleted, setIncludeDeleted] = useState(false);
-  const [rows, setRows] = useState<Tenant[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [selected, setSelected] = useState<Tenant | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    reload();
+  }, []);
 
   async function reload() {
-    const data = await listTenants({ q, include_deleted: includeDeleted });
-    setRows(data);
-    if (selectedId && !data.some(r => r.id === selectedId)) setSelectedId(null);
+    setLoading(true);
+    try {
+      const data = await listTenants();
+      setTenants(data);
+      if (data.length && !selected) setSelected(data[0]);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { reload(); }, [q, includeDeleted]);
-
-  const selected = useMemo(() => rows.find(r => r.id === selectedId) ?? null, [rows, selectedId]);
-
   return (
-    <div className="h-full flex gap-3">
-      {/* Main table area */}
-      <div className="flex-1 rounded-xl border border-white/10 bg-[#0b1220]">
-        <div className="flex items-center gap-3 p-3 border-b border-white/10">
-          <div className="flex-1">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search (name / email / tel)"
-              className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none"
-            />
-          </div>
-
-          <label className="text-xs text-white/70 flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={includeDeleted}
-              onChange={(e) => setIncludeDeleted(e.target.checked)}
-            />
-            show deleted
-          </label>
-
-          <button
-            className="rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 px-3 py-2 text-sm text-white"
-            onClick={() => alert("ここで追加モーダルを開く")}
-          >
-            + New
-          </button>
+    <div className="flex h-full gap-4">
+      {/* ===== 左：一覧 ===== */}
+      <div className="flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5">
+        <div className="border-b border-white/10 px-4 py-2 text-sm text-white/70">
+          テナント一覧
         </div>
 
-        <div className="overflow-auto">
-          <table className="w-full text-sm text-white/85">
-            <thead className="sticky top-0 bg-[#0b1220]">
-              <tr className="text-xs text-white/55 border-b border-white/10">
-                <th className="text-left p-3">Tenant</th>
-                <th className="text-left p-3">Representative</th>
-                <th className="text-left p-3">Email</th>
-                <th className="text-left p-3">Tel</th>
-                <th className="text-left p-3">Actions</th>
+        <div className="h-[calc(100%-41px)] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-[#0b1220] text-white/60">
+              <tr>
+                <th className="px-3 py-2 text-left">Tenant</th>
+                <th className="px-3 py-2 text-left">Representative</th>
+                <th className="px-3 py-2 text-left">Email</th>
+                <th className="px-3 py-2 text-left">Tel</th>
+                <th className="px-3 py-2 text-center w-24">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {rows.map((r) => {
-                const active = r.id === selectedId;
-                return (
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-white/40">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                tenants.map((t) => (
                   <tr
-                    key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className={[
-                      "border-b border-white/5 cursor-pointer",
-                      active ? "bg-white/10" : "hover:bg-white/5",
-                      r.is_deleted ? "opacity-60" : "",
-                    ].join(" ")}
+                    key={t.id}
+                    onClick={() => setSelected(t)}
+                    className={`cursor-pointer border-b border-white/5
+                      hover:bg-white/5
+                      ${selected?.id === t.id ? "bg-white/10" : ""}`}
                   >
-                    <td className="p-3">
-                      <div className="font-medium">{r.tenant_name}</div>
+                    <td className="px-3 py-2 truncate">{t.tenant_name}</td>
+                    <td className="px-3 py-2 truncate">
+                      {t.representative_name}
                     </td>
-                    <td className="p-3">{r.representative_name}</td>
-                    <td className="p-3">{r.email}</td>
-                    <td className="p-3">{r.tel_number ?? "-"}</td>
-                    <td className="px-2 py-0 align-middle">
-                      <div className="flex gap-1">
-                        <button className="p-1 hover:bg-gray-200 rounded" title="編集">
-                          <PencilSquareIcon className="w-4 h-4 text-blue-600" />
+                    <td className="px-3 py-2 truncate">{t.email}</td>
+                    <td className="px-3 py-2 truncate">{t.tel_number}</td>
+
+                    <td className="px-3 py-1">
+                      <div className="flex justify-center gap-1">
+                        <button
+                          className="rounded-md p-1.5 hover:bg-blue-500/20"
+                          title="Edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log("edit", t.id);
+                          }}
+                        >
+                          <Pencil size={16} className="text-blue-400" />
                         </button>
-                        <button className="p-1 hover:bg-red-100 rounded" title="削除">
-                          <TrashIcon className="w-4 h-4 text-red-600" />
+
+                        <button
+                          className="rounded-md p-1.5 hover:bg-red-500/20"
+                          title="Delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log("delete", t.id);
+                          }}
+                        >
+                          <Trash2 size={16} className="text-red-400" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-
-              {rows.length === 0 && (
-                <tr>
-                  <td className="p-6 text-center text-white/50" colSpan={5}>
-                    No results
-                  </td>
-                </tr>
-              )}
+                ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Right detail panel (Docker Desktopっぽい) */}
-      <div className="w-[420px] rounded-xl border border-white/10 bg-[#0b1220] p-3">
+      {/* ===== 右：詳細 ===== */}
+      <div className="w-[360px] shrink-0 rounded-xl border border-white/10 bg-white/5 p-4">
         {!selected ? (
-          <div className="text-white/50 text-sm p-2">Select a tenant to view details.</div>
+          <div className="text-white/40">Select a tenant</div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <div className="text-xs text-white/50">Tenant</div>
-              <div className="text-lg text-white font-semibold">{selected.tenant_name}</div>
-              <div className="text-xs text-white/50">{selected.tenant_code}</div>
+              <div className="font-semibold">{selected.tenant_name}</div>
+              <div className="text-xs text-white/40">{selected.tenant_code}</div>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Representative" value={selected.representative_name} className="col-span-2" />
-              <Field label="Email" value={selected.email} className="col-span-2" />
-              <Field label="Tel" value={selected.tel_number ?? ""} />
-              <Field label="Postal" value={selected.postal_code ?? ""} />
-              <Field label="State" value={selected.state ?? ""} />
-              <Field label="City" value={selected.city ?? ""} />
-              <Field label="Address" value={selected.address ?? ""} className="col-span-2" />
-              <Field label="Address2" value={selected.address2 ?? ""} className="col-span-2" />
+              <Detail label="Representative" value={selected.representative_name} />
+              <Detail label="Tel" value={selected.tel_number} />
+              <Detail label="Postal" value={selected.postal_code} />
+              <Detail label="State" value={selected.state} />
+              <Detail label="City" value={selected.city} />
+              <Detail label="Address" value={selected.address} />
             </div>
-            <div className="pt-2 border-t border-white/10 text-xs text-white/50">
-              created: {selected.created_at}<br/>
+
+            {/* Email は横いっぱい */}
+            <Detail label="Email" value={selected.email} wide />
+
+            <div className="pt-2 text-xs text-white/40">
+              created: {selected.created_at}
+              <br />
               updated: {selected.updated_at}
             </div>
           </div>
@@ -139,19 +136,19 @@ export default function TenantList() {
   );
 }
 
-function Field({
+function Detail({
   label,
   value,
-  className = "",
-} : {
+  wide,
+}: {
   label: string;
-  value: string;
-  className?: string;
+  value?: string | null;
+  wide?: boolean;
 }) {
   return (
-    <div className={`rounded-lg border border-white/10 bg-black/20 p-2 ${className}`}>
+    <div className={wide ? "col-span-2" : ""}>
       <div className="text-xs text-white/50">{label}</div>
-      <div className="text-white/85 break-words">{value}</div>
+      <div className="truncate">{value || "-"}</div>
     </div>
   );
 }

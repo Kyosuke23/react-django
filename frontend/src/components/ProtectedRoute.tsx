@@ -1,8 +1,13 @@
-import { Navigate, Outlet } from "react-router-dom";
+import React from "react";
+import { Navigate } from "react-router-dom";
 import { getAccessToken } from "../lib/api";
 
-export default function ProtectedRoute() {
+type Props = {
+  children: React.ReactNode;
+};
+
+export default function ProtectedRoute({ children }: Props) {
   const token = getAccessToken();
   if (!token) return <Navigate to="/login" replace />;
-  return <Outlet />;
+  return <>{children}</>;
 }
