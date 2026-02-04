@@ -10,8 +10,11 @@ import Pagination from "../../components/Pagination";
 import { usePagination } from "../../hooks/usePagination";
 import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
 
+/**
+ * サーバ側（Django API）の ordering に渡すことを想定したソートキー。
+ * - Django REST Framework の OrderingFilter 等とキーを一致させる前提。
+ */
 type SortKey =
-  | "tenant_code"
   | "tenant_name"
   | "representative_name"
   | "email"
@@ -20,31 +23,47 @@ type SortKey =
   | "updated_at";
 
 export default function TenantList() {
-  const [q, setQ] = useState("");
-  const [includeDeleted, setIncludeDeleted] = useState(false);
-  const [rows, setRows] = useState<Tenant[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  // -----------------------------
+  // フィルタ系 state
+  // -----------------------------
+  const [q, setQ] = useState(""); // 検索キーワード
+  const [includeDeleted, setIncludeDeleted] = useState(false); // 削除済みも含めるか
 
-  // --- sort state ---
+  // -----------------------------
+  // 一覧データ state
+  // -----------------------------
+  const [rows, setRows] = useState<Tenant[]>([]); // 一覧として表示するデータ配列
+  const [selectedId, setSelectedId] = useState<number | null>(null); // 詳細表示対象のID
+
+  // -----------------------------
+  // ソート state（サーバソート前提）
+  // -----------------------------
   const [sortKey, setSortKey] = useState<SortKey>("tenant_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  // --- Pagination ---
-  const [page, setPage] = useState(1);
-  const pageRows = useMemo(() => {
-    const start = (page - 1) * DEFAULT_PAGE_SIZE;
-    return rows.slice(start, start + DEFAULT_PAGE_SIZE);
-  }, [rows, page]);
-  const [totalCount, setTotalCount] = useState(0);
-  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE });
+  // -----------------------------
+  // ページング state
+  // -----------------------------
+  const [totalCount, setTotalCount] = useState(0); // 総件数（Pagination 表示用）
+  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE }); // 既存hook
 
-  // slide-over open/close
+  // 詳細スライドオーバーの開閉
   const detail = useDisclosure(false);
 
+  /**
+   * Django の OrderingFilter 等に渡す ordering 文字列を組み立てる
+   * - asc: "tenant_name"
+   * - desc: "-tenant_name"
+   */
   const ordering = useMemo(() => {
     return sortDir === "asc" ? sortKey : `-${sortKey}`;
   }, [sortKey, sortDir]);
 
+  /**
+   * DataTable 側から「並び替えキー」が通知されたときの処理
+   * - 同じキーを押したら asc/desc トグル
+   * - 別のキーなら asc で開始
+   */
   const onSort = useCallback(
     (serverSortKey: string) => {
       const key = serverSortKey as SortKey;
@@ -57,8 +76,19 @@ export default function TenantList() {
     [sortKey]
   );
 
-  const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
+  /**
+   * selectedId から選択中の Tenant を引く
+   * - rows が更新されたときにも追随する
+   */
+  const selected = useMemo(
+    () => rows.find((r) => r.id === selectedId) ?? null,
+    [rows, selectedId]
+  );
 
+  /**
+   * 行クリックで詳細を開く
+   * - 選択IDをセットしてスライドオーバー open
+   */
   const openDetail = useCallback(
     (t: Tenant) => {
       setSelectedId(t.id);
@@ -67,33 +97,54 @@ export default function TenantList() {
     [detail]
   );
 
+  /**
+   * 一覧再取得
+   * - q / includeDeleted / ordering / page / page_size を渡して API から取得
+   * - 表示用 rows と totalCount を更新
+   * - 選択中の行が一覧から消えた（フィルタで除外された等）場合は詳細を閉じる
+   *
+   * TODO:
+   * - API 例外時のエラーハンドリング（toast 等）を追加すると運用が安定
+   */
   const reload = useCallback(async () => {
     const data = await listTenantsPaged({
       q,
       include_deleted: includeDeleted,
       ordering,
-      page,
-      page_size: DEFAULT_PAGE_SIZE,
+      page: pager.page,
+      page_size: pager.pageSize,
     });
+
     setRows(data.items);
     setTotalCount(data.count);
 
-    // If selected row disappeared (filtered out), close panel.
+    // 選択中行が一覧から消えた場合（フィルタで除外など）は詳細を閉じる
     if (selectedId && !data.items.some((r) => r.id === selectedId)) {
       setSelectedId(null);
       detail.close();
     }
-  }, [q, includeDeleted, ordering, selectedId, detail]);
+  }, [q, includeDeleted, ordering, pager.page, pager.pageSize, selectedId, detail]);
 
+  // 初回 + 依存変更時に一覧取得
   useEffect(() => {
     reload();
   }, [reload]);
 
-  // Reset to page 1 when filter/sort changes
+  /**
+   * フィルタ/ソート変更時は 1ページ目に戻す
+   * NOTE:
+   * 現状 setPage(1) はしておらず pager.reset() だけ呼んでいる。
+   * もし page を useState で持つなら、ここで setPage(1) もしておくのが安全。
+   */
   useEffect(() => {
     pager.reset();
   }, [q, includeDeleted, sortKey, sortDir]);
 
+  /**
+   * 削除（論理削除想定）
+   * - confirm で誤操作を防止
+   * - 実行後に reload
+   */
   const onClickDelete = useCallback(
     async (id: number) => {
       if (!confirm("このテナントを削除しますか？")) return;
@@ -103,6 +154,10 @@ export default function TenantList() {
     [reload]
   );
 
+  /**
+   * 復元（論理削除の取り消し）
+   * - confirm → restore → reload
+   */
   const onClickRestore = useCallback(
     async (id: number) => {
       if (!confirm("このテナントを復元しますか？")) return;
@@ -112,6 +167,11 @@ export default function TenantList() {
     [reload]
   );
 
+  /**
+   * DataTable に渡すカラム定義
+   * - sortKey を持つ列は DataTable 側のヘッダクリックで onSort が呼ばれる想定
+   * - アクション列は行クリックを止めるため stopPropagation している（良い）
+   */
   const columns = useMemo(
     () => [
       {
@@ -124,14 +184,30 @@ export default function TenantList() {
           </div>
         ),
       },
-      { id: "rep", label: "代表者", sortKey: "representative_name", render: (t: Tenant) => t.representative_name },
-      { id: "email", label: "Email", sortKey: "email", render: (t: Tenant) => <span className="break-all">{t.email}</span> },
-      { id: "tel", label: "電話", sortKey: "tel_number", render: (t: Tenant) => t.tel_number ?? "-" },
+      {
+        id: "rep",
+        label: "代表者",
+        sortKey: "representative_name",
+        render: (t: Tenant) => t.representative_name,
+      },
+      {
+        id: "email",
+        label: "Email",
+        sortKey: "email",
+        render: (t: Tenant) => <span className="break-all">{t.email}</span>,
+      },
+      {
+        id: "tel",
+        label: "電話",
+        sortKey: "tel_number",
+        render: (t: Tenant) => t.tel_number ?? "-",
+      },
       {
         id: "actions",
         label: "",
         render: (t: Tenant) => (
           <div className="flex items-center justify-end gap-2">
+            {/* 編集（未実装） */}
             <button
               className="rounded-lg p-2 hover:bg-slate-100"
               title="編集"
@@ -144,6 +220,7 @@ export default function TenantList() {
               <PencilSquareIcon className="h-5 w-5 text-slate-600" />
             </button>
 
+            {/* 削除 / 復元 */}
             {!t.is_deleted ? (
               <button
                 className="rounded-lg p-2 hover:bg-slate-100"
@@ -179,7 +256,8 @@ export default function TenantList() {
     <div className="h-full flex flex-col min-h-0 gap-4 p-4">
       <h1 className="text-2xl font-bold">テナントマスタ管理</h1>
       <div className="text-xs text-slate-400">テナント情報管理ページ</div>
-      {/* Toolbar */}
+
+      {/* Toolbar: 検索・削除済み含む・（モバイル用ソート） */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* 検索 */}
@@ -205,7 +283,7 @@ export default function TenantList() {
           </label>
         </div>
 
-        {/* Mobile sort (optional) */}
+        {/* Mobile sort: スマホはテーブルヘッダが使いづらいので select でソート */}
         <div className="sm:hidden flex items-center gap-2">
           <select
             className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
@@ -229,12 +307,12 @@ export default function TenantList() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content: PC は DataTable、スマホはカード UI */}
       <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
         {/* Desktop table */}
         <div className="hidden sm:block flex-1 min-h-0">
           <DataTable<Tenant>
-            rows={pageRows}
+            rows={rows}
             columns={columns}
             className="h-full"
             rowKey={(t) => t.id}
@@ -242,13 +320,14 @@ export default function TenantList() {
             activeSortDir={sortDir}
             onSort={onSort}
             onRowClick={openDetail}
+            // 削除済みは薄く表示
             rowClassName={(t) => (t.is_deleted ? "opacity-60" : "")}
           />
           <Pagination
-            page={page}
+            page={pager.page}
             pageSize={DEFAULT_PAGE_SIZE}
             totalCount={totalCount}
-            onPageChange={setPage}
+            onPageChange={pager.setPage}
           />
         </div>
 
@@ -282,7 +361,7 @@ export default function TenantList() {
         </div>
       </div>
 
-      {/* Detail slide-over */}
+      {/* Detail slide-over: 選択行の詳細表示 */}
       <SlideOver
         open={detail.isOpen}
         onClose={detail.close}
@@ -294,30 +373,22 @@ export default function TenantList() {
             <dl className="space-y-3">
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
                 <dt className="text-xs text-slate-400 mb-1">コード</dt>
-                <dd className="text-sm font-medium break-all">
-                  {selected.tenant_code}
-                </dd>
+                <dd className="text-sm font-medium break-all">{selected.tenant_code}</dd>
               </div>
 
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
                 <dt className="text-xs text-slate-400 mb-1">代表者</dt>
-                <dd className="text-sm">
-                  {selected.representative_name}
-                </dd>
+                <dd className="text-sm">{selected.representative_name}</dd>
               </div>
 
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
                 <dt className="text-xs text-slate-400 mb-1">Email</dt>
-                <dd className="text-sm break-all">
-                  {selected.email}
-                </dd>
+                <dd className="text-sm break-all">{selected.email}</dd>
               </div>
 
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
                 <dt className="text-xs text-slate-400 mb-1">電話</dt>
-                <dd className="text-sm">
-                  {selected.tel_number ?? "-"}
-                </dd>
+                <dd className="text-sm">{selected.tel_number ?? "-"}</dd>
               </div>
 
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
