@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework import filters
 from rest_framework.decorators import action
@@ -55,7 +56,8 @@ class TenantViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):
-        obj = self.get_object()
+        # self.get_object() は get_queryset() のフィルタが効いて削除済を拾えないのでNG
+        obj = get_object_or_404(Tenant.objects.all(), pk=pk)
         obj.is_deleted = False
         obj.update_user = request.user
         obj.save(update_fields=["is_deleted", "update_user", "updated_at"])

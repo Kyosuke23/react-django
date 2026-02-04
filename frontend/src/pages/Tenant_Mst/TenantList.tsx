@@ -218,6 +218,9 @@ export default function TenantList() {
     [open]
   );
 
+  // -----------------------------
+  // 編集画面起動
+  // -----------------------------
   const openEdit = useCallback(
     (t: Tenant) => {
       setSelectedId(t.id);
@@ -230,7 +233,7 @@ export default function TenantList() {
   );
 
   // -----------------------------
-  // 削除 / 復元
+  // 削除
   // -----------------------------
   const onClickDelete = useCallback(
     async (id: number) => {
@@ -241,14 +244,19 @@ export default function TenantList() {
     [bumpReload]
   );
 
-  const onClickRestore = useCallback(
-    async (id: number) => {
-      if (!confirm("このテナントを復元しますか？")) return;
+  // -----------------------------
+  // 復元
+  // -----------------------------
+  const onClickRestore = useCallback(async (id: number) => {
+    if (!confirm("このテナントを復元しますか？")) return;
+    try {
       await restoreTenant(id);
       bumpReload();
-    },
-    [bumpReload]
-  );
+    } catch (e) {
+      console.error(e);
+      alert("復元に失敗しました");
+    }
+  }, [bumpReload]);
 
   // -----------------------------
   // 前へ / 次へ（今ページのみ）
