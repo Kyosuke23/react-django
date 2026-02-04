@@ -30,10 +30,10 @@ export default function TenantList() {
   const [includeDeleted, setIncludeDeleted] = useState(false); // 削除済みも含めるか
 
   // -----------------------------
-  // 一覧データ state
+  // 一覧データ state（rows は「今ページの items」のみ）
   // -----------------------------
-  const [rows, setRows] = useState<Tenant[]>([]); // 一覧として表示するデータ配列
-  const [selectedId, setSelectedId] = useState<number | null>(null); // 詳細表示対象のID
+  const [rows, setRows] = useState<Tenant[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // -----------------------------
   // ソート state（サーバソート前提）
@@ -42,10 +42,10 @@ export default function TenantList() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   // -----------------------------
-  // ページング state
+  // ページング state（pager が主役）
   // -----------------------------
-  const [totalCount, setTotalCount] = useState(0); // 総件数（Pagination 表示用）
-  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE }); // 既存hook
+  const [totalCount, setTotalCount] = useState(0);
+  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE });
 
   // 詳細スライドオーバーの開閉
   const detail = useDisclosure(false);
@@ -78,7 +78,7 @@ export default function TenantList() {
 
   /**
    * selectedId から選択中の Tenant を引く
-   * - rows が更新されたときにも追随する
+   * - rows が更新されたときにも追随する（ただし rows は今ページ分のみ）
    */
   const selected = useMemo(
     () => rows.find((r) => r.id === selectedId) ?? null,
@@ -87,7 +87,6 @@ export default function TenantList() {
 
   /**
    * 行クリックで詳細を開く
-   * - 選択IDをセットしてスライドオーバー open
    */
   const openDetail = useCallback(
     (t: Tenant) => {
@@ -98,13 +97,7 @@ export default function TenantList() {
   );
 
   /**
-   * 一覧再取得
-   * - q / includeDeleted / ordering / page / page_size を渡して API から取得
-   * - 表示用 rows と totalCount を更新
-   * - 選択中の行が一覧から消えた（フィルタで除外された等）場合は詳細を閉じる
-   *
-   * TODO:
-   * - API 例外時のエラーハンドリング（toast 等）を追加すると運用が安定
+   * 一覧再取得（サーバページング）
    */
   const reload = useCallback(async () => {
     const data = await listTenantsPaged({
@@ -118,32 +111,26 @@ export default function TenantList() {
     setRows(data.items);
     setTotalCount(data.count);
 
-    // 選択中行が一覧から消えた場合（フィルタで除外など）は詳細を閉じる
+    // 選択中行が今ページから消えた場合（ページ移動/フィルタ変更など）は詳細を閉じる
     if (selectedId && !data.items.some((r) => r.id === selectedId)) {
       setSelectedId(null);
       detail.close();
     }
   }, [q, includeDeleted, ordering, pager.page, pager.pageSize, selectedId, detail]);
 
-  // 初回 + 依存変更時に一覧取得
   useEffect(() => {
     reload();
   }, [reload]);
 
   /**
-   * フィルタ/ソート変更時は 1ページ目に戻す
-   * NOTE:
-   * 現状 setPage(1) はしておらず pager.reset() だけ呼んでいる。
-   * もし page を useState で持つなら、ここで setPage(1) もしておくのが安全。
+   * フィルタ/ソート変更時は 1ページ目に戻す（サーバページング前提）
    */
   useEffect(() => {
     pager.reset();
-  }, [q, includeDeleted, sortKey, sortDir]);
+  }, [q, includeDeleted, sortKey, sortDir, pager]);
 
   /**
    * 削除（論理削除想定）
-   * - confirm で誤操作を防止
-   * - 実行後に reload
    */
   const onClickDelete = useCallback(
     async (id: number) => {
@@ -156,7 +143,6 @@ export default function TenantList() {
 
   /**
    * 復元（論理削除の取り消し）
-   * - confirm → restore → reload
    */
   const onClickRestore = useCallback(
     async (id: number) => {
@@ -167,10 +153,29 @@ export default function TenantList() {
     [reload]
   );
 
+  // -----------------------------
+  // 詳細内：前へ / 次へ（今ページ rows のみ）
+  // -----------------------------
+  const selectedIndex = useMemo(() => {
+    if (selectedId == null) return -1;
+    return rows.findIndex((r) => r.id === selectedId);
+  }, [rows, selectedId]);
+
+  const hasPrev = selectedIndex > 0;
+  const hasNext = selectedIndex >= 0 && selectedIndex < rows.length - 1;
+
+  const goPrev = useCallback(() => {
+    if (!hasPrev) return;
+    setSelectedId(rows[selectedIndex - 1].id);
+  }, [hasPrev, rows, selectedIndex]);
+
+  const goNext = useCallback(() => {
+    if (!hasNext) return;
+    setSelectedId(rows[selectedIndex + 1].id);
+  }, [hasNext, rows, selectedIndex]);
+
   /**
    * DataTable に渡すカラム定義
-   * - sortKey を持つ列は DataTable 側のヘッダクリックで onSort が呼ばれる想定
-   * - アクション列は行クリックを止めるため stopPropagation している（良い）
    */
   const columns = useMemo(
     () => [
@@ -257,7 +262,7 @@ export default function TenantList() {
       <h1 className="text-2xl font-bold">テナントマスタ管理</h1>
       <div className="text-xs text-slate-400">テナント情報管理ページ</div>
 
-      {/* Toolbar: 検索・削除済み含む・（モバイル用ソート） */}
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* 検索 */}
@@ -283,14 +288,14 @@ export default function TenantList() {
           </label>
         </div>
 
-        {/* Mobile sort: スマホはテーブルヘッダが使いづらいので select でソート */}
+        {/* Mobile sort */}
         <div className="sm:hidden flex items-center gap-2">
           <select
             className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
           >
-            <option value="tenant_name">テナント</option>
+            <option value="tenant_name">テナント名称</option>
             <option value="representative_name">代表者</option>
             <option value="email">Email</option>
             <option value="tel_number">電話</option>
@@ -307,7 +312,7 @@ export default function TenantList() {
         </div>
       </div>
 
-      {/* Content: PC は DataTable、スマホはカード UI */}
+      {/* Content */}
       <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
         {/* Desktop table */}
         <div className="hidden sm:block flex-1 min-h-0">
@@ -320,7 +325,6 @@ export default function TenantList() {
             activeSortDir={sortDir}
             onSort={onSort}
             onRowClick={openDetail}
-            // 削除済みは薄く表示
             rowClassName={(t) => (t.is_deleted ? "opacity-60" : "")}
           />
           <Pagination
@@ -361,7 +365,7 @@ export default function TenantList() {
         </div>
       </div>
 
-      {/* Detail slide-over: 選択行の詳細表示 */}
+      {/* Detail slide-over */}
       <SlideOver
         open={detail.isOpen}
         onClose={detail.close}
@@ -369,10 +373,35 @@ export default function TenantList() {
         title={selected?.tenant_name ?? ""}
       >
         <div className="p-4 space-y-3">
+          {/* 前へ / 次へ */}
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+              onClick={goPrev}
+              disabled={!hasPrev}
+            >
+              ← 前の明細
+            </button>
+
+            <div className="text-xs text-slate-400">
+              {selectedIndex >= 0 ? `${selectedIndex + 1} / ${rows.length}` : ""}
+            </div>
+
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+              onClick={goNext}
+              disabled={!hasNext}
+            >
+              次の明細 →
+            </button>
+          </div>
+
           {selected ? (
             <dl className="space-y-3">
               <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">コード</dt>
+                <dt className="text-xs text-slate-400 mb-1">テナントコード</dt>
                 <dd className="text-sm font-medium break-all">{selected.tenant_code}</dd>
               </div>
 
