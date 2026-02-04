@@ -111,9 +111,7 @@ export default function TenantMst() {
   // ページング
   // -----------------------------
   const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE });
-  const page = pager.page;
-  const pageSize = pager.pageSize;
-  const setPage = pager.setPage;
+  const { page, pageSize, setPage, reset } = pager;
 
   // -----------------------------
   // フラッシュメッセージ
@@ -335,7 +333,7 @@ export default function TenantMst() {
   const onSort = useCallback(
     (serverSortKey: string) => {
       const key = serverSortKey as SortKey;
-      setPage(1);
+      reset();
       if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
       else {
         setSortKey(key);
@@ -346,7 +344,7 @@ export default function TenantMst() {
   );
 
   // -----------------------------
-  // 明細テーブル
+  // 明細テーブル定義
   // -----------------------------
   const columns = ColumnsTable({openEdit, onClickDelete, onClickRestore});
 
@@ -364,7 +362,7 @@ export default function TenantMst() {
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
-                setPage(1);
+                reset();
               }}
               className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
               placeholder="テナント名 / コード / Email / 電話…"
@@ -377,7 +375,7 @@ export default function TenantMst() {
               checked={includeDeleted}
               onChange={(e) => {
                 setIncludeDeleted(e.target.checked);
-                setPage(1);
+                reset();
               }}
               className="h-4 w-4"
             />
@@ -393,7 +391,7 @@ export default function TenantMst() {
             onChange={(e) => {
               setSortKey(e.target.value as SortKey);
               setSortDir("asc");
-              setPage(1);
+              reset();
             }}
           >
             <option value="tenant_name">テナント名称</option>
@@ -407,7 +405,7 @@ export default function TenantMst() {
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
             onClick={() => {
               setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-              setPage(1);
+              reset();
             }}
             title="昇順/降順"
           >
