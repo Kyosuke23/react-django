@@ -22,7 +22,6 @@ export type Partner = {
   update_user: string;
 
   // 返していれば使える（返してなくても問題なし）
-  tenant_id?: number;
   tenant_code?: string;
   tenant_name?: string;
 };

@@ -8,7 +8,7 @@ import { usePagination } from "../../hooks/usePagination";
 import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
 import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
-import PartnerDetailSlideOver from "./components/DetailSlideOver";
+import DetailSlideOver from "./components/DetailSlideOver";
 
 type SortKey =
   | "partner_name"
@@ -474,7 +474,7 @@ export default function PartnerMst() {
       </div>
 
       {/* Detail slide-over */}
-      <PartnerDetailSlideOver
+      <DetailSlideOver
         open={detailOpen}
         onClose={() => {
           setIsEditing(false);

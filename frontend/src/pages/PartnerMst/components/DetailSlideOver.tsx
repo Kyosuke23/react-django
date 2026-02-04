@@ -1,6 +1,7 @@
-import type { Dispatch, SetStateAction } from "react";
-import type { Partner } from "../../../lib/partners";
+import { useMemo } from "react";
 import SlideOver from "../../common/components/SlideOver";
+import type { Partner } from "../../../lib/partners";
+import { inputClass } from "../../common/features/commonUI";
 
 type EditState = {
   partner_name: string;
@@ -33,7 +34,7 @@ type Props = {
   saving: boolean;
 
   edit: EditState;
-  setEdit: Dispatch<SetStateAction<EditState>>;
+  setEdit: React.Dispatch<React.SetStateAction<EditState>>;
 
   saveError: string | null;
   fieldErrors: Record<string, string[]>;
@@ -43,7 +44,26 @@ type Props = {
   saveEdit: () => void;
 };
 
-export default function PartnerDetailSlideOver(props: Props) {
+
+function FieldError({ messages }: { messages?: string[] }) {
+  if (!messages?.length) return null;
+  return <p className="mt-1 text-xs text-rose-400">{messages.join(", ")}</p>;
+}
+
+function partnerTypeLabel(v: Partner["partner_type"]) {
+  switch (v) {
+    case "customer":
+      return "顧客";
+    case "supplier":
+      return "仕入先";
+    case "both":
+      return "顧客・仕入先";
+    default:
+      return v;
+  }
+}
+
+export default function TenantDetailSlideOver(props: Props) {
   const {
     open,
     onClose,
@@ -65,230 +85,282 @@ export default function PartnerDetailSlideOver(props: Props) {
     saveEdit,
   } = props;
 
-  return (
-    <SlideOver open={open} onClose={onClose} title="取引先詳細">
-      {!selected ? (
-        <div className="p-4 text-sm text-slate-400">取引先が選択されていません</div>
-      ) : (
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="border-b border-slate-700 px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="truncate text-lg font-semibold text-slate-100">
-                  {selected.partner_name}
-                </div>
-                <div className="text-xs text-slate-400">
-                  {selectedIndex + 1} / {rowsLength}
-                </div>
-              </div>
+  const title = useMemo(() => (isEditing ? "データ編集" : "詳細データ"), [isEditing]);
 
-              <div className="flex items-center gap-2">
-                <button
-                  className="rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-200 disabled:opacity-40"
-                  disabled={!hasPrev || isEditing}
-                  onClick={goPrev}
-                >
-                  ← 前
-                </button>
-                <button
-                  className="rounded-lg border border-slate-600 px-2 py-1 text-xs text-slate-200 disabled:opacity-40"
-                  disabled={!hasNext || isEditing}
-                  onClick={goNext}
-                >
-                  次 →
-                </button>
-              </div>
-            </div>
+  return (
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title={title}
+      headerRight={
+        <div className="flex items-center gap-2">
+          {!isEditing ? (
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-sm bg-slate-200 text-slate-900 hover:bg-white disabled:opacity-40"
+              onClick={startEdit}
+              disabled={!selected || !!selected?.is_deleted}
+              title={selected?.is_deleted ? "削除済みは編集できません" : "編集"}
+            >
+              編集
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 hover:bg-slate-900/40 disabled:opacity-40"
+                onClick={cancelEdit}
+                disabled={saving}
+              >
+                キャンセル
+              </button>
+
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+                onClick={saveEdit}
+                disabled={saving}
+              >
+                {saving ? "保存中..." : "保存"}
+              </button>
+            </>
+          )}
+        </div>
+      }
+    >
+      <div className="p-4 space-y-3">
+        {/* 前へ / 次へ */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+            onClick={goPrev}
+            disabled={!hasPrev || isEditing}
+            title={isEditing ? "編集中は移動できません" : "前の明細"}
+          >
+            ← 前の明細
+          </button>
+
+          <div className="text-xs text-slate-400">
+            {selectedIndex >= 0 ? `${selectedIndex + 1} / ${rowsLength}` : ""}
           </div>
 
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-            {/* 基本情報 */}
-            <Section title="基本情報">
-              <Field label="取引先名" error={fieldErrors.partner_name}>
-                <Input
+          <button
+            type="button"
+            className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+            onClick={goNext}
+            disabled={!hasNext || isEditing}
+            title={isEditing ? "編集中は移動できません" : "次の明細"}
+          >
+            次の明細 →
+          </button>
+        </div>
+
+        {/* non_field_errors を優先表示 */}
+        {fieldErrors.non_field_errors?.length ? (
+          <pre className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+            {fieldErrors.non_field_errors.join("\n")}
+          </pre>
+        ) : saveError ? (
+          <pre className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+            {saveError}
+          </pre>
+        ) : null}
+
+        {selected ? (
+          isEditing ? (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">取引先名称</label>
+                <input
+                  className={inputClass(!!fieldErrors.partner_name)}
                   value={edit.partner_name}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, partner_name: v }))}
+                  onChange={(e) => setEdit((p) => ({ ...p, partner_name: e.target.value }))}
+                  disabled={saving}
                 />
-              </Field>
+                <FieldError messages={fieldErrors.partner_name} />
+              </div>
 
-              <Field label="取引先名（カナ）" error={fieldErrors.partner_name_kana}>
-                <Input
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">取引先名称（カナ）</label>
+                <input
+                  className={inputClass(!!fieldErrors.partner_name_kana)}
                   value={edit.partner_name_kana}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, partner_name_kana: v }))}
+                  onChange={(e) => setEdit((p) => ({ ...p, partner_name_kana: e.target.value }))}
+                  disabled={saving}
                 />
-              </Field>
+                <FieldError messages={fieldErrors.partner_name_kana} />
+              </div>
 
-              <Field label="区分" error={fieldErrors.partner_type}>
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">区分</label>
                 <select
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100"
-                  disabled={!isEditing}
+                  className={inputClass(!!fieldErrors.partner_type)}
                   value={edit.partner_type}
                   onChange={(e) =>
-                    setEdit((v) => ({ ...v, partner_type: e.target.value as Partner["partner_type"] }))
+                    setEdit((p) => ({
+                      ...p,
+                      partner_type: e.target.value as Partner["partner_type"],
+                    }))
                   }
+                  disabled={saving}
                 >
                   <option value="customer">顧客</option>
                   <option value="supplier">仕入先</option>
                   <option value="both">顧客・仕入先</option>
                 </select>
-              </Field>
-            </Section>
-
-            {/* 連絡先 */}
-            <Section title="連絡先">
-              <Field label="担当者名" error={fieldErrors.contact_name}>
-                <Input
-                  value={edit.contact_name}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, contact_name: v }))}
-                />
-              </Field>
-
-              <Field label="Email" error={fieldErrors.email}>
-                <Input
-                  value={edit.email}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, email: v }))}
-                />
-              </Field>
-
-              <Field label="電話番号" error={fieldErrors.tel_number}>
-                <Input
-                  value={edit.tel_number}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, tel_number: v }))}
-                />
-              </Field>
-            </Section>
-
-            {/* 住所 */}
-            <Section title="住所">
-              <Field label="郵便番号" error={fieldErrors.postal_code}>
-                <Input
-                  value={edit.postal_code}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, postal_code: v }))}
-                />
-              </Field>
-
-              <Field label="都道府県" error={fieldErrors.state}>
-                <Input
-                  value={edit.state}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, state: v }))}
-                />
-              </Field>
-
-              <Field label="市区町村" error={fieldErrors.city}>
-                <Input
-                  value={edit.city}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, city: v }))}
-                />
-              </Field>
-
-              <Field label="住所" error={fieldErrors.address}>
-                <Input
-                  value={edit.address}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, address: v }))}
-                />
-              </Field>
-
-              <Field label="建物名など" error={fieldErrors.address2}>
-                <Input
-                  value={edit.address2}
-                  disabled={!isEditing}
-                  onChange={(v) => setEdit((e) => ({ ...e, address2: v }))}
-                />
-              </Field>
-            </Section>
-
-            {saveError && (
-              <div className="rounded-lg bg-rose-900/30 px-3 py-2 text-sm text-rose-200">
-                {saveError}
+                <FieldError messages={fieldErrors.partner_type} />
               </div>
-            )}
-          </div>
 
-          {/* Footer */}
-          <div className="border-t border-slate-700 px-4 py-3 flex justify-end gap-2">
-            {!isEditing ? (
-              <button
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-40"
-                disabled={selected.is_deleted}
-                onClick={startEdit}
-              >
-                編集
-              </button>
-            ) : (
-              <>
-                <button
-                  className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200"
-                  onClick={cancelEdit}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">担当者名</label>
+                <input
+                  className={inputClass(!!fieldErrors.contact_name)}
+                  value={edit.contact_name}
+                  onChange={(e) => setEdit((p) => ({ ...p, contact_name: e.target.value }))}
                   disabled={saving}
-                >
-                  キャンセル
-                </button>
-                <button
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white disabled:opacity-40"
-                  onClick={saveEdit}
+                />
+                <FieldError messages={fieldErrors.contact_name} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">電話番号</label>
+                <input
+                  className={inputClass(!!fieldErrors.tel_number)}
+                  value={edit.tel_number}
+                  onChange={(e) => setEdit((p) => ({ ...p, tel_number: e.target.value }))}
                   disabled={saving}
-                >
-                  保存
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+                  placeholder="例）03-1234-5678"
+                />
+                <FieldError messages={fieldErrors.tel_number} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">E-Mail</label>
+                <input
+                  className={inputClass(!!fieldErrors.email)}
+                  value={edit.email}
+                  onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
+                  disabled={saving}
+                  placeholder="example@example.com"
+                />
+                <FieldError messages={fieldErrors.email} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">郵便番号</label>
+                <input
+                  className={inputClass(!!fieldErrors.postal_code)}
+                  value={edit.postal_code}
+                  onChange={(e) => setEdit((p) => ({ ...p, postal_code: e.target.value }))}
+                  disabled={saving}
+                  placeholder="例）1000001"
+                />
+                <FieldError messages={fieldErrors.postal_code} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">都道府県</label>
+                <input
+                  className={inputClass(!!fieldErrors.state)}
+                  value={edit.state}
+                  onChange={(e) => setEdit((p) => ({ ...p, state: e.target.value }))}
+                  disabled={saving}
+                  placeholder="例）東京都"
+                />
+                <FieldError messages={fieldErrors.state} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">市区町村</label>
+                <input
+                  className={inputClass(!!fieldErrors.city)}
+                  value={edit.city}
+                  onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
+                  disabled={saving}
+                  placeholder="例）千代田区"
+                />
+                <FieldError messages={fieldErrors.city} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">住所</label>
+                <input
+                  className={inputClass(!!fieldErrors.address)}
+                  value={edit.address}
+                  onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
+                  disabled={saving}
+                  placeholder="例）丸の内1-1-1"
+                />
+                <FieldError messages={fieldErrors.address} />
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <label className="block text-xs text-slate-400 mb-1">建物名など</label>
+                <input
+                  className={inputClass(!!fieldErrors.address2)}
+                  value={edit.address2}
+                  onChange={(e) => setEdit((p) => ({ ...p, address2: e.target.value }))}
+                  disabled={saving}
+                  placeholder="例）〇〇ビル 10F"
+                />
+                <FieldError messages={fieldErrors.address2} />
+              </div>
+            </div>
+          ) : (
+            <dl className="space-y-3">
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">取引先名称</dt>
+                <dd className="text-sm font-medium break-all">{selected.partner_name}</dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">取引先名称（カナ）</dt>
+                <dd className="text-sm">{selected.partner_name_kana}</dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">区分</dt>
+                <dd className="text-sm">
+                  {partnerTypeLabel(selected.partner_type)}
+                </dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">担当者名</dt>
+                <dd className="text-sm">{selected.contact_name}</dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">電話番号</dt>
+                <dd className="text-sm">{selected.tel_number}</dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">E-Mail</dt>
+                <dd className="text-sm">{selected.email}</dd>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                <dt className="text-xs text-slate-400 mb-1">住所</dt>
+                <dd className="text-sm">
+                  {[
+                    selected.postal_code ? `〒${selected.postal_code}` : null,
+                    selected.state,
+                    selected.city,
+                    selected.address,
+                    selected.address2,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                </dd>
+              </div>
+            </dl>
+          )
+        ) : (
+          <div className="text-sm text-slate-500">行を選択してください</div>
+        )}
+      </div>
     </SlideOver>
-  );
-}
-
-/* ---------- helpers ---------- */
-
-function Section(props: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-3">
-      <div className="text-sm font-semibold text-slate-200">{props.title}</div>
-      <div className="grid grid-cols-1 gap-3">{props.children}</div>
-    </div>
-  );
-}
-
-function Field(props: {
-  label: string;
-  error?: string[];
-  children: React.ReactNode;
-}) {
-  const { label, error, children } = props;
-  return (
-    <div className="space-y-1">
-      <label className="block text-xs text-slate-300">{label}</label>
-      {children}
-      {error && error.length > 0 && (
-        <div className="text-xs text-rose-300">{error.join(" ")}</div>
-      )}
-    </div>
-  );
-}
-
-function Input(props: {
-  value: string;
-  disabled?: boolean;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <input
-      value={props.value}
-      disabled={props.disabled}
-      onChange={(e) => props.onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 disabled:opacity-60"
-    />
   );
 }

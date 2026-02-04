@@ -56,6 +56,12 @@ export function ColumnsTable(opts: {
         render: (p: Partner) => p.tel_number ?? "-",
       },
       {
+        id: "contact_name",
+        label: "担当者名",
+        sortKey: "contact_name",
+        render: (p: Partner) => p.contact_name ?? "-",
+      },
+      {
         id: "actions",
         label: "",
         render: (p: Partner) => (
