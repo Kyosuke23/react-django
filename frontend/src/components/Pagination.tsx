@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 type Props = {
-  page: number;
+  page: number;        // 1-based
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
@@ -46,6 +46,9 @@ export default function Pagination({
 }: Props) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const safePage = clamp(page, 1, totalPages);
+  const start = totalCount === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const end = totalCount === 0 ? 0 : Math.min(totalCount, safePage * pageSize);
+
   const pages = buildPages(safePage, totalPages);
 
   const canPrev = safePage > 1;
@@ -54,15 +57,28 @@ export default function Pagination({
   return (
     <div
       className={[
-        "flex items-center justify-between gap-3",
+        "grid grid-cols-[1fr_auto_1fr] items-center gap-3 pt-2",
         className ?? "",
       ].join(" ")}
     >
-      <div className="text-xs text-slate-300">
-        {totalCount.toLocaleString()}件 / {pageSize}件表示
+      <div className="text-xs text-slate-300 justify-self-start">
+        {totalCount.toLocaleString()}件中 / {start.toLocaleString()}件〜{end.toLocaleString()}件を表示
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 justify-self-center">
+        <button
+          className={[
+            "rounded-md px-2 py-1 text-sm",
+            canPrev ? "hover:bg-white/10" : "opacity-40 cursor-not-allowed",
+          ].join(" ")}
+          onClick={() => canPrev && onPageChange(1)}
+          disabled={!canPrev}
+          aria-label="最初のページ"
+          title="最初のページ"
+        >
+          «
+        </button>
+
         <button
           className={[
             "rounded-md px-2 py-1 text-sm",
@@ -103,9 +119,22 @@ export default function Pagination({
         >
           →
         </button>
+
+        <button
+          className={[
+            "rounded-md px-2 py-1 text-sm",
+            canNext ? "hover:bg-white/10" : "opacity-40 cursor-not-allowed",
+          ].join(" ")}
+          onClick={() => canNext && onPageChange(totalPages)}
+          disabled={!canNext}
+          aria-label="最後のページ"
+          title="最後のページ"
+        >
+          »
+        </button>
       </div>
 
-      <div className="hidden sm:block">{rightSlot}</div>
+      <div className="hidden sm:block justify-self-end">{rightSlot}</div>
     </div>
   );
 }
