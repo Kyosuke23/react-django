@@ -8,6 +8,7 @@ import SlideOver from "../../components/SlideOver";
 import Pagination from "../../components/Pagination";
 import { usePagination } from "../../hooks/usePagination";
 import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
+import { useFlash } from "../../components/Flash";
 
 type SortKey =
   | "tenant_name"
@@ -131,6 +132,11 @@ export default function TenantList() {
   const setPage = pager.setPage;
 
   // -----------------------------
+  // フラッシュメッセージ
+  // -----------------------------
+  const flash = useFlash();
+
+  // -----------------------------
   // SlideOver（この画面は useState で安定化）
   // -----------------------------
   const [detailOpen, setDetailOpen] = useState(false);
@@ -238,8 +244,14 @@ export default function TenantList() {
   const onClickDelete = useCallback(
     async (id: number) => {
       if (!confirm("このテナントを削除しますか？")) return;
-      await deleteTenant(id);
-      bumpReload();
+      try {
+        await deleteTenant(id);
+        bumpReload();
+        flash.success("削除に成功しました")
+      } catch (e) {
+        console.error(e);
+        flash.error("削除に失敗しました")
+      }
     },
     [bumpReload]
   );
@@ -249,14 +261,16 @@ export default function TenantList() {
   // -----------------------------
   const onClickRestore = useCallback(async (id: number) => {
     if (!confirm("このテナントを復元しますか？")) return;
+
     try {
       await restoreTenant(id);
       bumpReload();
+      flash.success("復元しました");
     } catch (e) {
       console.error(e);
-      alert("復元に失敗しました");
+      flash.error("復元に失敗しました");
     }
-  }, [bumpReload]);
+  }, [bumpReload, flash]);
 
   // -----------------------------
   // 前へ / 次へ（今ページのみ）
@@ -317,6 +331,7 @@ export default function TenantList() {
       setIsEditing(false);
       setFieldErrors({});
       bumpReload();
+      flash.success("保存しました");
     } catch (e: any) {
       const data = e?.data;
       if (data && typeof data === "object") {
