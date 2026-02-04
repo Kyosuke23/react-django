@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from api.base import BaseModel
+from tenants.models import Tenant
 
 
 class UserManager(BaseUserManager):
@@ -29,6 +30,13 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
+
+        # ===== テナント情報Null対策 =====
+        if "tenant" not in extra_fields or extra_fields.get("tenant") is None:
+            tenant = Tenant.objects.first()
+            if tenant is None:
+                raise ValueError("テナント情報が1件も存在しません。先にテナント情報を作成してください。")
+            extra_fields["tenant"] = tenant
 
         return self._create_user(email, password, **extra_fields)
 
