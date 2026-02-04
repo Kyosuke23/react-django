@@ -26,5 +26,6 @@ urlpatterns = [
     path('api/', include('api.urls')),
 
     # マスタ系
-    path("api/tenants/", include("tenants.urls")),
+    path("api/tenants/", include("tenants.urls")), # テナントマスタ
+    path("api/partners/", include("partners.urls")), # 取引先マスタ
 ]
