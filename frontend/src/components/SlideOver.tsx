@@ -4,9 +4,16 @@ import { useEscapeKey } from "../hooks/useEscapeKey";
 type Props = {
   open: boolean;
   onClose: () => void;
+
+  /** Left side header texts */
   title?: ReactNode;
   subtitle?: ReactNode;
+
+  /** Right side header actions (e.g. 編集/保存ボタン) */
+  headerRight?: ReactNode;
+
   children: ReactNode;
+
   /**
    * Tailwind width classes for desktop. Mobile is always full width.
    * Example: "sm:max-w-md" (default)
@@ -16,6 +23,9 @@ type Props = {
   /** Optional theme overrides */
   panelClassName?: string;
   headerClassName?: string;
+
+  /** Close button control */
+  showCloseButton?: boolean;
 };
 
 export default function SlideOver({
@@ -23,10 +33,12 @@ export default function SlideOver({
   onClose,
   title,
   subtitle,
+  headerRight,
   children,
   maxWidthClassName = "sm:max-w-md",
   panelClassName = "bg-slate-950 text-slate-100",
   headerClassName = "border-b border-slate-800",
+  showCloseButton = true,
 }: Props) {
   useEscapeKey(open, onClose);
 
@@ -56,18 +68,23 @@ export default function SlideOver({
         aria-modal="true"
       >
         <div className="h-full flex flex-col">
-          {(title || subtitle) && (
-            <div className={["px-4 py-3 flex items-start justify-between gap-3", headerClassName].join(" ")}>
-              <div className="min-w-0">
+          {(title || subtitle || headerRight || showCloseButton) && (
+            <div className={["px-4 py-3 flex items-start gap-3", headerClassName].join(" ")}>
+              {/* Left */}
+              <div className="min-w-0 flex-1">
                 {subtitle && <div className="text-xs text-slate-400">{subtitle}</div>}
-                {title && <div className="text-lg font-semibold truncate">{title}</div>}
+                {title &&
+                  (typeof title === "string" || typeof title === "number" ? (
+                    <div className="text-lg font-semibold truncate">{title}</div>
+                  ) : (
+                    <div className="min-w-0">{title}</div>
+                  ))}
               </div>
-              <button
-                className="shrink-0 rounded-lg px-3 py-1 text-sm hover:bg-white/10"
-                onClick={onClose}
-              >
-                閉じる
-              </button>
+
+              {/* Right (actions + close) */}
+              <div className="shrink-0 flex items-center gap-2">
+                {headerRight}
+              </div>
             </div>
           )}
 

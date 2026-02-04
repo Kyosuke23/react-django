@@ -541,8 +541,42 @@ export default function TenantList() {
           setFieldErrors({});
           close();
         }}
-        subtitle="詳細表示"
-        title={selected?.tenant_name ?? ""}
+        title={isEditing ? "データ編集" : "詳細データ"}
+        headerRight={
+          <div className="flex items-center gap-2">
+            {!isEditing ? (
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-sm bg-slate-200 text-slate-900 hover:bg-white disabled:opacity-40"
+                onClick={startEdit}
+                disabled={!selected || !!selected?.is_deleted}
+                title={selected?.is_deleted ? "削除済みは編集できません" : "編集"}
+              >
+                編集
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 hover:bg-slate-900/40 disabled:opacity-40"
+                  onClick={cancelEdit}
+                  disabled={saving}
+                >
+                  キャンセル
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+                  onClick={saveEdit}
+                  disabled={saving}
+                >
+                  {saving ? "保存中..." : "保存"}
+                </button>
+              </>
+            )}
+          </div>
+        }
       >
         <div className="p-4 space-y-3">
           {/* 前へ / 次へ */}
@@ -571,41 +605,6 @@ export default function TenantList() {
               次の明細 →
             </button>
           </div>
-
-          {/* 編集アクション */}
-          <div className="flex items-center justify-end gap-2">
-            {!isEditing ? (
-              <button
-                type="button"
-                className="rounded-lg px-3 py-2 text-sm bg-slate-200 text-slate-900 hover:bg-white disabled:opacity-40"
-                onClick={startEdit}
-                disabled={!selected || !!selected?.is_deleted}
-                title={selected?.is_deleted ? "削除済みは編集できません" : "編集"}
-              >
-                編集
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 hover:bg-slate-900/40 disabled:opacity-40"
-                  onClick={cancelEdit}
-                  disabled={saving}
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
-                  onClick={saveEdit}
-                  disabled={saving}
-                >
-                  {saving ? "保存中..." : "保存"}
-                </button>
-              </>
-            )}
-          </div>
-
           {/* non_field_errors を優先表示（あれば） */}
           {fieldErrors.non_field_errors?.length ? (
             <pre className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
@@ -725,8 +724,8 @@ export default function TenantList() {
             ) : (
               <dl className="space-y-3">
                 <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">テナントコード</dt>
-                  <dd className="text-sm font-medium break-all">{selected.tenant_code}</dd>
+                  <dt className="text-xs text-slate-400 mb-1">テナント名称</dt>
+                  <dd className="text-sm font-medium break-all">{selected.tenant_name}</dd>
                 </div>
 
                 <div className="rounded-lg bg-slate-900/60 px-4 py-3">
