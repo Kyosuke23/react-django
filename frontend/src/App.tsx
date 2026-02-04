@@ -5,7 +5,7 @@ import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
 import TenantList from "./pages/TenantMst/TenantMst";
 import Login from "./pages/Login";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./pages/common/components/ProtectedRoute";
 
 import { clearTokens, getAccessToken } from "./lib/api";
 

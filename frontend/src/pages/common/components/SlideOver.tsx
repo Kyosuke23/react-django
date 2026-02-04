@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEscapeKey } from "../hooks/useEscapeKey";
+import { useEscapeKey } from "../../../hooks/useEscapeKey";
 
 type Props = {
   open: boolean;

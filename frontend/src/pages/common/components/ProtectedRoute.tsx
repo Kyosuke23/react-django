@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { getAccessToken } from "../lib/api";
+import { getAccessToken } from "../../../lib/api";
 
 type Props = {
   children: React.ReactNode;

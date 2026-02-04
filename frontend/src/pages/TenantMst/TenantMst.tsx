@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Tenant, TenantUpdatePayload } from "../../lib/tenants";
 import { listTenantsPaged, deleteTenant, restoreTenant, updateTenant } from "../../lib/tenants";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
-import DataTable from "../../components/DataTable";
-import type { SortDir } from "../../components/DataTable";
-import Pagination from "../../components/Pagination";
+import DataTable from "../common/components/DataTable";
+import type { SortDir } from "../common/components/DataTable";
+import Pagination from "../common/components/Pagination";
 import { usePagination } from "../../hooks/usePagination";
 import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
-import { useFlash } from "../../components/Flash";
+import { useFlash } from "../common/components/Flash";
 import TenantDetailSlideOver from "./components/TenantDetailSlideOver";
 
 type SortKey =

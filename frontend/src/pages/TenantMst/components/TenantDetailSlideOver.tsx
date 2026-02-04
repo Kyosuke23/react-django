@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import SlideOver from "../../../components/SlideOver";
+import SlideOver from "../../common/components/SlideOver";
 import type { Tenant } from "../../../lib/tenants";
 
 export type EditState = {
