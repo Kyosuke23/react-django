@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
-import TenantList from "./pages/Tenant_Mst/TenantList";
+import TenantList from "./pages/TenantMst/TenantMst";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 
