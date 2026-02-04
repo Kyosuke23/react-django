@@ -1,0 +1,504 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Partner, PartnerUpdatePayload } from "../../lib/partners";
+import { listPartnersPaged, deletePartner, restorePartner, updatePartner } from "../../lib/partners";
+import DataTable from "../common/components/DataTable";
+import type { SortDir } from "../common/components/DataTable";
+import Pagination from "../common/components/Pagination";
+import { usePagination } from "../../hooks/usePagination";
+import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
+import { useFlash } from "../common/components/Flash";
+import { ColumnsTable } from "./components/ColumnsTable";
+import PartnerDetailSlideOver from "./components/DetailSlideOver";
+
+type SortKey =
+  | "partner_name"
+  | "partner_type"
+  | "email"
+  | "tel_number"
+  | "created_at"
+  | "updated_at";
+
+type EditState = {
+  partner_name: string;
+  partner_name_kana: string;
+  partner_type: Partner["partner_type"];
+  contact_name: string;
+  tel_number: string;
+  email: string;
+  postal_code: string;
+  state: string;
+  city: string;
+  address: string;
+  address2: string;
+};
+
+const emptyEdit: EditState = {
+  partner_name: "",
+  partner_name_kana: "",
+  partner_type: "customer",
+  contact_name: "",
+  tel_number: "",
+  email: "",
+  postal_code: "",
+  state: "",
+  city: "",
+  address: "",
+  address2: "",
+};
+
+function toEditState(p: Partner): EditState {
+  return {
+    partner_name: p.partner_name ?? "",
+    partner_name_kana: p.partner_name_kana ?? "",
+    partner_type: p.partner_type ?? "customer",
+    contact_name: p.contact_name ?? "",
+    tel_number: p.tel_number ?? "",
+    email: p.email ?? "",
+    postal_code: p.postal_code ?? "",
+    state: p.state ?? "",
+    city: p.city ?? "",
+    address: p.address ?? "",
+    address2: p.address2 ?? "",
+  };
+}
+
+function toUpdatePayload(e: EditState): PartnerUpdatePayload {
+  return {
+    partner_name: e.partner_name,
+    partner_name_kana: e.partner_name_kana || null,
+    partner_type: e.partner_type,
+    contact_name: e.contact_name || null,
+    tel_number: e.tel_number || null,
+    email: e.email,
+    postal_code: e.postal_code || null,
+    state: e.state || null,
+    city: e.city || null,
+    address: e.address || null,
+    address2: e.address2 || null,
+  };
+}
+
+export default function PartnerMst() {
+  // -----------------------------
+  // フィルタ
+  // -----------------------------
+  const [q, setQ] = useState("");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+
+  // -----------------------------
+  // 一覧（rows は今ページのみ）
+  // -----------------------------
+  const [rows, setRows] = useState<Partner[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // -----------------------------
+  // 編集
+  // -----------------------------
+  const [isEditing, setIsEditing] = useState(false);
+  const [edit, setEdit] = useState<EditState>(emptyEdit);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // -----------------------------
+  // バリデーション（サーバ側）
+  // -----------------------------
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  // -----------------------------
+  // ソート
+  // -----------------------------
+  const [sortKey, setSortKey] = useState<SortKey>("partner_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const ordering = useMemo(() => {
+    return sortDir === "asc" ? sortKey : `-${sortKey}`;
+  }, [sortKey, sortDir]);
+
+  // -----------------------------
+  // ページング
+  // -----------------------------
+  const pager = usePagination({ pageSize: DEFAULT_PAGE_SIZE });
+  const { page, pageSize, setPage, reset } = pager;
+
+  // -----------------------------
+  // フラッシュメッセージ
+  // -----------------------------
+  const flash = useFlash();
+
+  // -----------------------------
+  // SlideOver（この画面は useState で安定化）
+  // -----------------------------
+  const [detailOpen, setDetailOpen] = useState(false);
+  const open = useCallback(() => setDetailOpen(true), []);
+  const close = useCallback(() => setDetailOpen(false), []);
+
+  // -----------------------------
+  // 再取得トリガ
+  // -----------------------------
+  const [reloadToken, setReloadToken] = useState(0);
+  const bumpReload = useCallback(() => setReloadToken((t) => t + 1), []);
+
+  // -----------------------------
+  // selected
+  // -----------------------------
+  const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
+
+  /**
+   * 選択行が変わったら edit を初期化
+   * - ★編集中は rows 更新が入っても edit を上書きしない（入力が消えるのを防止）
+   */
+  useEffect(() => {
+    if (!selected) {
+      setEdit(emptyEdit);
+      setSaveError(null);
+      setIsEditing(false);
+      setFieldErrors({});
+      return;
+    }
+    if (isEditing) return;
+
+    setEdit(toEditState(selected));
+    setSaveError(null);
+    setFieldErrors({});
+  }, [selectedId, selected, isEditing]);
+
+  // -----------------------------
+  // 一覧取得（依存は「値」だけ + reloadToken）
+  // -----------------------------
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const data = await listPartnersPaged({
+        q,
+        include_deleted: includeDeleted,
+        ordering,
+        page,
+        page_size: pageSize,
+      });
+
+      if (!alive) return;
+
+      setRows(data.items);
+      setTotalCount(data.count);
+
+      // 選択中行が今ページから消えたら閉じる（ページ移動/フィルタ変更/削除など）
+      if (selectedId && !data.items.some((r) => r.id === selectedId)) {
+        setSelectedId(null);
+        setIsEditing(false);
+        setSaveError(null);
+        setFieldErrors({});
+        close();
+      }
+    })().catch((e) => {
+      console.error(e);
+      flash.error("一覧の取得に失敗しました");
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [q, includeDeleted, ordering, page, pageSize, reloadToken, selectedId, close, flash]);
+
+  // -----------------------------
+  // 行クリック / 編集開始（アイコン）
+  // -----------------------------
+  const openDetail = useCallback(
+    (p: Partner) => {
+      setSelectedId(p.id);
+      setIsEditing(false);
+      setSaveError(null);
+      setFieldErrors({});
+      open();
+    },
+    [open]
+  );
+
+  // -----------------------------
+  // 編集画面起動
+  // -----------------------------
+  const openEdit = useCallback(
+    (p: Partner) => {
+      setSelectedId(p.id);
+      setIsEditing(true);
+      setSaveError(null);
+      setFieldErrors({});
+      open();
+    },
+    [open]
+  );
+
+  // -----------------------------
+  // 削除
+  // -----------------------------
+  const onClickDelete = useCallback(
+    async (id: number) => {
+      if (!confirm("この取引先を削除しますか？")) return;
+      try {
+        await deletePartner(id);
+        bumpReload();
+        flash.success("削除に成功しました");
+      } catch (e) {
+        console.error(e);
+        flash.error("削除に失敗しました");
+      }
+    },
+    [bumpReload, flash]
+  );
+
+  // -----------------------------
+  // 復元
+  // -----------------------------
+  const onClickRestore = useCallback(
+    async (id: number) => {
+      if (!confirm("この取引先を復元しますか？")) return;
+
+      try {
+        await restorePartner(id);
+        bumpReload();
+        flash.success("復元しました");
+      } catch (e) {
+        console.error(e);
+        flash.error("復元に失敗しました");
+      }
+    },
+    [bumpReload, flash]
+  );
+
+  // -----------------------------
+  // 前へ / 次へ（今ページのみ）
+  // -----------------------------
+  const selectedIndex = useMemo(() => {
+    if (selectedId == null) return -1;
+    return rows.findIndex((r) => r.id === selectedId);
+  }, [rows, selectedId]);
+
+  const hasPrev = selectedIndex > 0;
+  const hasNext = selectedIndex >= 0 && selectedIndex < rows.length - 1;
+
+  const goPrev = useCallback(() => {
+    if (isEditing) return;
+    if (!hasPrev) return;
+    setSelectedId(rows[selectedIndex - 1].id);
+  }, [isEditing, hasPrev, rows, selectedIndex]);
+
+  const goNext = useCallback(() => {
+    if (isEditing) return;
+    if (!hasNext) return;
+    setSelectedId(rows[selectedIndex + 1].id);
+  }, [isEditing, hasNext, rows, selectedIndex]);
+
+  // -----------------------------
+  // 編集：開始/キャンセル/保存（詳細内ボタン）
+  // -----------------------------
+  const startEdit = useCallback(() => {
+    if (!selected) return;
+    if (selected.is_deleted) return;
+    setEdit(toEditState(selected));
+    setIsEditing(true);
+    setSaveError(null);
+    setFieldErrors({});
+  }, [selected]);
+
+  const cancelEdit = useCallback(() => {
+    if (!selected) {
+      setIsEditing(false);
+      setFieldErrors({});
+      return;
+    }
+    setEdit(toEditState(selected));
+    setIsEditing(false);
+    setSaveError(null);
+    setFieldErrors({});
+  }, [selected]);
+
+  const saveEdit = useCallback(async () => {
+    if (!selectedId) return;
+
+    setFieldErrors({});
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      await updatePartner(selectedId, toUpdatePayload(edit));
+      setIsEditing(false);
+      setFieldErrors({});
+      bumpReload();
+      flash.success("保存しました");
+    } catch (e: any) {
+      const data = e?.data;
+      if (data && typeof data === "object") {
+        setFieldErrors(data);
+        setSaveError("入力項目に誤りがあります");
+      } else {
+        setSaveError(e?.message || "保存に失敗しました");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedId, edit, bumpReload, flash]);
+
+  // -----------------------------
+  // ソート：変更時は必ず 1ページ目へ
+  // -----------------------------
+  const onSort = useCallback(
+    (serverSortKey: string) => {
+      const key = serverSortKey as SortKey;
+      reset();
+      if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      else {
+        setSortKey(key);
+        setSortDir("asc");
+      }
+    },
+    [sortKey, reset]
+  );
+
+  // -----------------------------
+  // 明細テーブル定義
+  // -----------------------------
+  const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
+
+  return (
+    <div className="h-full flex flex-col min-h-0 gap-4 pb-4">
+      <h1 className="text-2xl font-bold">取引先マスタ管理</h1>
+      <div className="text-xs text-slate-400">取引先情報管理ページ</div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="w-full sm:w-96">
+            <label className="block text-xs text-slate-300 mb-1">検索</label>
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                reset();
+              }}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
+              placeholder="取引先名 / カナ / Email / 電話 / 担当者…"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer mt-1 sm:mt-6">
+            <input
+              type="checkbox"
+              checked={includeDeleted}
+              onChange={(e) => {
+                setIncludeDeleted(e.target.checked);
+                reset();
+              }}
+              className="h-4 w-4"
+            />
+            <span>削除済みを含める</span>
+          </label>
+        </div>
+
+        {/* Mobile sort */}
+        <div className="sm:hidden flex items-center gap-2">
+          <select
+            className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+            value={sortKey}
+            onChange={(e) => {
+              setSortKey(e.target.value as SortKey);
+              setSortDir("asc");
+              reset();
+            }}
+          >
+            <option value="partner_name">取引先名</option>
+            <option value="partner_type">区分</option>
+            <option value="email">Email</option>
+            <option value="tel_number">電話</option>
+            <option value="created_at">作成日</option>
+            <option value="updated_at">更新日</option>
+          </select>
+          <button
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            onClick={() => {
+              setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+              reset();
+            }}
+            title="昇順/降順"
+          >
+            {sortDir === "asc" ? "▲" : "▼"}
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
+        <div className="hidden sm:block flex-1 min-h-0">
+          <DataTable<Partner>
+            rows={rows}
+            columns={columns}
+            className="h-full"
+            rowKey={(p) => p.id}
+            activeSortKey={sortKey}
+            activeSortDir={sortDir}
+            onSort={onSort}
+            onRowClick={openDetail}
+            rowClassName={(p) => (p.is_deleted ? "opacity-60" : "")}
+          />
+          <Pagination page={page} pageSize={DEFAULT_PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
+        </div>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden flex-1 min-h-0 overflow-auto space-y-2 pb-2">
+          {rows.map((p) => (
+            <button
+              key={p.id}
+              className={[
+                "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
+                "active:scale-[0.99] transition",
+                p.is_deleted ? "opacity-60" : "",
+              ].join(" ")}
+              onClick={() => openDetail(p)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-slate-200/900 truncate">{p.partner_name}</div>
+                  <div className="mt-2 text-xs text-slate-200/90 truncate">{p.email}</div>
+                  <div className="text-xs text-slate-200/80">{p.tel_number ?? "-"}</div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2">
+                  <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
+                    {p.is_deleted ? "削除済み" : "有効"}
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Detail slide-over */}
+      <PartnerDetailSlideOver
+        open={detailOpen}
+        onClose={() => {
+          setIsEditing(false);
+          setSaveError(null);
+          setFieldErrors({});
+          close();
+        }}
+        selected={selected}
+        selectedIndex={selectedIndex}
+        rowsLength={rows.length}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+        goPrev={goPrev}
+        goNext={goNext}
+        isEditing={isEditing}
+        saving={saving}
+        edit={edit}
+        setEdit={setEdit}
+        saveError={saveError}
+        fieldErrors={fieldErrors}
+        startEdit={startEdit}
+        cancelEdit={cancelEdit}
+        saveEdit={saveEdit}
+      />
+    </div>
+  );
+}

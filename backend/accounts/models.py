@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from api.base import BaseModel
 
 
 class UserManager(BaseUserManager):
@@ -32,7 +33,7 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields)
 
 
-class User(AbstractUser):
+class User(AbstractUser, BaseModel):
     # username を廃止して email をログインIDにする
     username = None
     email = models.EmailField(_("email address"), unique=True)

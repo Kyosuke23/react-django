@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 
 import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
-import TenantList from "./pages/TenantMst/TenantMst";
+import TenantMst from "./pages/TenantMst/TenantMst";
+import PartnerMst from "./pages/PartnerMst/PartnerMst";
 import Login from "./pages/Login";
 import ProtectedRoute from "./pages/common/components/ProtectedRoute";
 
@@ -70,24 +71,13 @@ export default function App() {
                 </svg>
               </button>
             )}
-
             <div className="text-sm font-semibold text-slate-200">
               react-django
             </div>
-
-            {/* {loggedIn && (
-              <button
-                onClick={handleLogout}
-                className="rounded-md bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
-              >
-                Logout
-              </button>
-            )} */}
           </div>
         </header>
 
         {/* ================= 本体（サイドバー + メイン） ================= */}
-        {/* min-h-0 が超重要。これが無いとスクロールが壊れる */}
         <div className="flex flex-1 min-h-0">
           {/* ---------- サイドバー ---------- */}
           <aside className="hidden md:block w-56 shrink-0 border-r border-slate-800 bg-slate-900/30">
@@ -99,7 +89,8 @@ export default function App() {
               <nav className="flex flex-col gap-1">
                 <SideNavLink to="/" label="Home" />
                 <SideNavLink to="/api_check" label="API Check" />
-                <SideNavLink to="/tenant_list" label="テナントマスタ" />
+                <SideNavLink to="/tenant_mst" label="テナントマスタ" />
+                <SideNavLink to="/partner_mst" label="取引先マスタ" />
               </nav>
 
               <div className="mt-auto pt-4">
@@ -150,8 +141,9 @@ export default function App() {
                   <nav className="flex flex-col gap-1">
                     <SideNavLink to="/" label="Home" />
                     <SideNavLink to="/api_check" label="API Check" />
-                    <SideNavLink to="/tenant_list" label="テナントマスタ" />
-                  </nav>
+                    <SideNavLink to="/tenant_mst" label="テナントマスタ" />
+                    <SideNavLink to="/partner_mst" label="取引先マスタ" />
+                  </nav>a
 
                   <div className="mt-auto pt-4">
                     <button
@@ -194,10 +186,19 @@ export default function App() {
                 />
 
                 <Route
-                  path="/tenant_list"
+                  path="/tenant_mst"
                   element={
                     <ProtectedRoute>
-                      <TenantList />
+                      <TenantMst />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/partner_mst"
+                  element={
+                    <ProtectedRoute>
+                      <PartnerMst />
                     </ProtectedRoute>
                   }
                 />
