@@ -1,5 +1,6 @@
 import { apiFetch } from "./api";
 
+// データ定義
 export type Tenant = {
   id: number;
   tenant_code: string;
@@ -18,6 +19,23 @@ export type Tenant = {
   updated_at: string;
   update_user: string;
 };
+
+// 更新処理で許可する項目
+export type TenantUpdatePayload = Partial<
+  Pick<
+    Tenant,
+    | "tenant_code"
+    | "tenant_name"
+    | "representative_name"
+    | "email"
+    | "tel_number"
+    | "postal_code"
+    | "state"
+    | "city"
+    | "address"
+    | "address2"
+  >
+>;
 
 type ListParams = {
   q?: string;
@@ -64,15 +82,7 @@ export async function listTenants(params?: ListParams): Promise<Tenant[]> {
   return (await parseOrThrow(res)) as Tenant[];
 }
 
-export async function createTenant(payload: Partial<Tenant>): Promise<Tenant> {
-  const res = await apiFetch("/api/tenants/", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-  return (await parseOrThrow(res)) as Tenant;
-}
-
-export async function updateTenant(id: number, payload: Partial<Tenant>): Promise<Tenant> {
+export async function updateTenant(id: number, payload: TenantUpdatePayload): Promise<Tenant> {
   const res = await apiFetch(`/api/tenants/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(payload),
@@ -94,6 +104,11 @@ export type Paginated<T> = {
   items: T[];
   count: number;
 };
+
+export async function getTenant(id: number): Promise<Tenant> {
+  const res = await apiFetch(`/api/tenants/${id}/`, { method: "GET" });
+  return (await parseOrThrow(res)) as Tenant;
+}
 
 export async function listTenantsPaged(params?: ListParams): Promise<Paginated<Tenant>> {
   const qs = buildQuery(params);
