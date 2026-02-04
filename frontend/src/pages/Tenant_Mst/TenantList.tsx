@@ -420,7 +420,7 @@ export default function TenantList() {
   );
 
   return (
-    <div className="h-full flex flex-col min-h-0 gap-4 p-4">
+    <div className="h-full flex flex-col min-h-0 gap-4 pb-4">
       <h1 className="text-2xl font-bold">テナントマスタ管理</h1>
       <div className="text-xs text-slate-400">テナント情報管理ページ</div>
 
