@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import SlideOver from "../../common/components/SlideOver";
 import type { Tenant } from "../../../lib/tenants";
+import { inputClass } from "../../common/features/commonUI";
 
 export type EditState = {
   tenant_name: string;
@@ -47,17 +48,6 @@ type Props = {
   // 閉じる時に TenantList 側で持ってる state も初期化したいので、
   // TenantList の onClose に処理を寄せるのが安全
 };
-
-function inputClass(hasError: boolean) {
-  return [
-    "w-full rounded-lg px-3 py-2 text-sm",
-    "bg-slate-950/30 text-slate-100",
-    "border outline-none",
-    hasError
-      ? "border-rose-500 focus:ring-2 focus:ring-rose-500/40"
-      : "border-slate-700 focus:ring-2 focus:ring-white/10",
-  ].join(" ");
-}
 
 function FieldError({ messages }: { messages?: string[] }) {
   if (!messages?.length) return null;
