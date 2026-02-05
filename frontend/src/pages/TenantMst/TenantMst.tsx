@@ -10,6 +10,7 @@ import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
 import TenantDetailSlideOver from "./components/DetailSlideOver";
 
+
 type SortKey =
   | "tenant_name"
   | "representative_name"
