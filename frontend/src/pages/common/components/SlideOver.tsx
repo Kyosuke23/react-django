@@ -69,7 +69,7 @@ export default function SlideOver({
       >
         <div className="h-full flex flex-col">
           {(title || subtitle || headerRight || showCloseButton) && (
-            <div className={["px-4 py-3 flex items-start gap-3", headerClassName].join(" ")}>
+            <div className={["px-4 py-3 flex items-center gap-3", headerClassName].join(" ")}>
               {/* Left */}
               <div className="min-w-0 flex-1">
                 {subtitle && <div className="text-xs text-slate-400">{subtitle}</div>}

@@ -221,6 +221,7 @@ export default function PartnerMst() {
   const openEdit = useCallback(
     (p: Partner) => {
       setSelectedId(p.id);
+      setEdit(toEditState(p));
       setIsEditing(true);
       setSaveError(null);
       setFieldErrors({});

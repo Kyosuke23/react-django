@@ -212,6 +212,7 @@ export default function TenantMst() {
   const openEdit = useCallback(
     (t: Tenant) => {
       setSelectedId(t.id);
+      setEdit(toEditState(t));
       setIsEditing(true);
       setSaveError(null);
       setFieldErrors({});
