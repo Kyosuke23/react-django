@@ -171,83 +171,92 @@ export default function TenantDetailSlideOver(props: Props) {
         {selected ? (
           isEditing ? (
             <div className="space-y-3">
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">取引先名称</label>
-                <input
-                  className={inputClass(!!fieldErrors.partner_name)}
-                  value={edit.partner_name}
-                  onChange={(e) => setEdit((p) => ({ ...p, partner_name: e.target.value }))}
-                  disabled={saving}
-                />
-                <FieldError messages={fieldErrors.partner_name} />
+              {/* 基本情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  基本情報
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">取引先名称</label>
+                  <input
+                    className={inputClass(!!fieldErrors.partner_name)}
+                    value={edit.partner_name}
+                    onChange={(e) => setEdit((p) => ({ ...p, partner_name: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.partner_name} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">取引先名称（カナ）</label>
+                  <input
+                    className={inputClass(!!fieldErrors.partner_name_kana)}
+                    value={edit.partner_name_kana}
+                    onChange={(e) => setEdit((p) => ({ ...p, partner_name_kana: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.partner_name_kana} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">区分</label>
+                  <select
+                    className={inputClass(!!fieldErrors.partner_type)}
+                    value={edit.partner_type}
+                    onChange={(e) =>
+                      setEdit((p) => ({
+                        ...p,
+                        partner_type: e.target.value as Partner["partner_type"],
+                      }))
+                    }
+                    disabled={saving}
+                  >
+                    <option value="customer">顧客</option>
+                    <option value="supplier">仕入先</option>
+                    <option value="both">顧客・仕入先</option>
+                  </select>
+                  <FieldError messages={fieldErrors.partner_type} />
+                </div>
               </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">取引先名称（カナ）</label>
-                <input
-                  className={inputClass(!!fieldErrors.partner_name_kana)}
-                  value={edit.partner_name_kana}
-                  onChange={(e) => setEdit((p) => ({ ...p, partner_name_kana: e.target.value }))}
-                  disabled={saving}
-                />
-                <FieldError messages={fieldErrors.partner_name_kana} />
-              </div>
+              {/* 連絡先情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  連絡先情報
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">担当者名</label>
+                  <input
+                    className={inputClass(!!fieldErrors.contact_name)}
+                    value={edit.contact_name}
+                    onChange={(e) => setEdit((p) => ({ ...p, contact_name: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.contact_name} />
+                </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">区分</label>
-                <select
-                  className={inputClass(!!fieldErrors.partner_type)}
-                  value={edit.partner_type}
-                  onChange={(e) =>
-                    setEdit((p) => ({
-                      ...p,
-                      partner_type: e.target.value as Partner["partner_type"],
-                    }))
-                  }
-                  disabled={saving}
-                >
-                  <option value="customer">顧客</option>
-                  <option value="supplier">仕入先</option>
-                  <option value="both">顧客・仕入先</option>
-                </select>
-                <FieldError messages={fieldErrors.partner_type} />
-              </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">電話番号</label>
+                  <input
+                    className={inputClass(!!fieldErrors.tel_number)}
+                    value={edit.tel_number}
+                    onChange={(e) => setEdit((p) => ({ ...p, tel_number: e.target.value }))}
+                    disabled={saving}
+                    placeholder="例）03-1234-5678"
+                  />
+                  <FieldError messages={fieldErrors.tel_number} />
+                </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">担当者名</label>
-                <input
-                  className={inputClass(!!fieldErrors.contact_name)}
-                  value={edit.contact_name}
-                  onChange={(e) => setEdit((p) => ({ ...p, contact_name: e.target.value }))}
-                  disabled={saving}
-                />
-                <FieldError messages={fieldErrors.contact_name} />
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">E-Mail</label>
+                  <input
+                    className={inputClass(!!fieldErrors.email)}
+                    value={edit.email}
+                    onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
+                    disabled={saving}
+                    placeholder="example@example.com"
+                  />
+                  <FieldError messages={fieldErrors.email} />
+                </div>
               </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">電話番号</label>
-                <input
-                  className={inputClass(!!fieldErrors.tel_number)}
-                  value={edit.tel_number}
-                  onChange={(e) => setEdit((p) => ({ ...p, tel_number: e.target.value }))}
-                  disabled={saving}
-                  placeholder="例）03-1234-5678"
-                />
-                <FieldError messages={fieldErrors.tel_number} />
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">E-Mail</label>
-                <input
-                  className={inputClass(!!fieldErrors.email)}
-                  value={edit.email}
-                  onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
-                  disabled={saving}
-                  placeholder="example@example.com"
-                />
-                <FieldError messages={fieldErrors.email} />
-              </div>
-
 
               {/* 住所情報 */}
               <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
@@ -303,51 +312,70 @@ export default function TenantDetailSlideOver(props: Props) {
             </div>
           ) : (
             <dl className="space-y-3">
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">取引先名称</dt>
-                <dd className="text-sm font-medium break-all">{selected.partner_name}</dd>
+              {/* 基本情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  基本情報
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">取引先名称</dt>
+                  <dd className="text-sm font-medium break-all">{selected.partner_name}</dd>
+                </div>
+
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">取引先名称（カナ）</dt>
+                  <dd className="text-sm">{selected.partner_name_kana}</dd>
+                </div>
+
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">区分</dt>
+                  <dd className="text-sm">
+                    {partnerTypeLabel(selected.partner_type)}
+                  </dd>
+                </div>
               </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">取引先名称（カナ）</dt>
-                <dd className="text-sm">{selected.partner_name_kana}</dd>
+              {/* 連絡先情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  連絡先情報
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">担当者名</dt>
+                  <dd className="text-sm">{selected.contact_name}</dd>
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">Email</dt>
+                  <dd className="text-sm break-all">{selected.email}</dd>
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">電話</dt>
+                  <dd className="text-sm">{selected.tel_number ?? "-"}</dd>
+                </div>
               </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">区分</dt>
-                <dd className="text-sm">
-                  {partnerTypeLabel(selected.partner_type)}
-                </dd>
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">担当者名</dt>
-                <dd className="text-sm">{selected.contact_name}</dd>
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">電話番号</dt>
-                <dd className="text-sm">{selected.tel_number}</dd>
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">E-Mail</dt>
-                <dd className="text-sm">{selected.email}</dd>
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <dt className="text-xs text-slate-400 mb-1">住所</dt>
-                <dd className="text-sm">
-                  {[
-                    selected.postal_code ? `〒${selected.postal_code}` : null,
-                    selected.state,
-                    selected.city,
-                    selected.address,
-                    selected.address2,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                </dd>
+              {/* 住所情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  住所情報
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">郵便番号</dt>
+                  <dd className="text-sm break-all">{selected.postal_code ? `〒${selected.postal_code}` : null}</dd>
+                </div>
+                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
+                  <dt className="text-xs text-slate-400 mb-1">住所</dt>
+                  <dd className="text-sm">
+                    {[
+                      selected.state,
+                      selected.city,
+                      selected.address,
+                      selected.address2,
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </dd>
+                </div>
               </div>
             </dl>
           )
