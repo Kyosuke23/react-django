@@ -350,27 +350,27 @@ export default function TenantMst() {
   const columns = ColumnsTable({openEdit, onClickDelete, onClickRestore});
 
   return (
-    <div className="h-full flex flex-col min-h-0 gap-4 pb-4">
-      <h1 className="text-2xl font-bold">テナントマスタ管理</h1>
-      <div className="text-xs text-slate-400">テナント情報管理ページ</div>
+    <div className="ui-page">
+      <h1 className="ui-page-title">テナントマスタ管理</h1>
+      <div className="ui-page-desc">テナント情報管理ページ</div>
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-96">
-            <label className="block text-xs text-slate-300 mb-1">検索</label>
+      <div className="ui-toolbar">
+        <div className="ui-toolbar-left">
+          <div className="ui-field-search">
+            <label className="ui-field-label">検索</label>
             <input
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
                 reset();
               }}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
+              className="ui-input-keyword"
               placeholder="テナント名 / コード / Email / 電話…"
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer mt-1 sm:mt-6">
+          <label className="ui-checkbox-row">
             <input
               type="checkbox"
               checked={includeDeleted}
@@ -378,16 +378,16 @@ export default function TenantMst() {
                 setIncludeDeleted(e.target.checked);
                 reset();
               }}
-              className="h-4 w-4"
+              className="ui-checkbox"
             />
             <span>削除済みを含める</span>
           </label>
         </div>
 
         {/* Mobile sort */}
-        <div className="sm:hidden flex items-center gap-2">
+        <div className="ui-mobile-sort-area">
           <select
-            className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+            className="ui-mobile-sort-select"
             value={sortKey}
             onChange={(e) => {
               setSortKey(e.target.value as SortKey);
@@ -403,7 +403,7 @@ export default function TenantMst() {
             <option value="updated_at">更新日</option>
           </select>
           <button
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="ui-mobile-sort-btn"
             onClick={() => {
               setSortDir((d) => (d === "asc" ? "desc" : "asc"));
               reset();
@@ -416,8 +416,8 @@ export default function TenantMst() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
-        <div className="hidden sm:block flex-1 min-h-0">
+      <div className="ui-panel">
+        <div className="ui-table-area">
           <DataTable<Tenant>
             rows={rows}
             columns={columns}
@@ -427,38 +427,51 @@ export default function TenantMst() {
             activeSortDir={sortDir}
             onSort={onSort}
             onRowClick={openDetail}
-            rowClassName={(t) => (t.is_deleted ? "opacity-60" : "")}
+            rowClassName={(t) => (t.is_deleted ? "ui-is-deleted" : "")}
           />
           <Pagination page={page} pageSize={DEFAULT_PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
         </div>
 
         {/* Mobile cards */}
-        <div className="sm:hidden flex-1 min-h-0 overflow-auto space-y-2 pb-2">
-          {rows.map((t) => (
-            <button
-              key={t.id}
-              className={[
-                "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
-                "active:scale-[0.99] transition",
-                t.is_deleted ? "opacity-60" : "",
-              ].join(" ")}
-              onClick={() => openDetail(t)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold text-slate-200/900 truncate">{t.tenant_name}</div>
-                  <div className="mt-2 text-xs text-slate-200/90 truncate">{t.email}</div>
-                  <div className="text-xs text-slate-200/80">{t.tel_number ?? "-"}</div>
-                </div>
+        <div className="ui-mobile-list">
+          {rows.map((t) => {
+            const address = [
+              t.postal_code ? `〒${t.postal_code}` : null,
+              t.state,
+              t.city,
+              t.address,
+              t.address2,
+            ]
+              .filter(Boolean)
+              .join(" ");
 
-                <div className="shrink-0 flex items-center gap-2">
-                  <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
-                    {t.is_deleted ? "削除済み" : "有効"}
-                  </span>
+            return (
+              <button
+                key={t.id}
+                className={["ui-mobile-card", t.is_deleted ? "ui-is-deleted" : "",].join(" ")}
+                onClick={() => openDetail(t)}
+              >
+                <div className="ui-mobile-card-content">
+                  <div className="ui-mobile-card-row">
+                    <div className="ui-mobile-card-value-main">{t.tenant_name}</div>
+                    <div className="ui-mobile-card-value-sub">{t.email}</div>
+                    <div className="ui-mobile-card-value-sub">{t.tel_number ?? "-"}</div>
+                    {address && (
+                      <div className="ui-mobile-card-value-sub" title={address}>
+                        {address}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="ui-mobile-card-badge">
+                    <span className="ui-badge-status">
+                      {t.is_deleted ? "削除済み" : "有効"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 

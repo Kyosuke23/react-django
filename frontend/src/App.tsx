@@ -104,7 +104,6 @@ export default function App() {
             </div>
           </aside>
 
-
           {/* ---------- Mobile drawer ---------- */}
           {loggedIn && (
             <>
@@ -143,7 +142,7 @@ export default function App() {
                     <SideNavLink to="/api_check" label="API Check" />
                     <SideNavLink to="/tenant_mst" label="テナントマスタ" />
                     <SideNavLink to="/partner_mst" label="取引先マスタ" />
-                  </nav>a
+                  </nav>
 
                   <div className="mt-auto pt-4">
                     <button

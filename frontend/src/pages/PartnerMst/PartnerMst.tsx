@@ -364,35 +364,35 @@ export default function PartnerMst() {
   const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
 
   return (
-    <div className="h-full flex flex-col min-h-0 gap-4 pb-4">
-      <h1 className="text-2xl font-bold">取引先マスタ管理</h1>
-      <div className="text-xs text-slate-400">取引先情報管理ページ</div>
+    <div className="ui-page">
+      <h1 className="ui-page-title">取引先マスタ管理</h1>
+      <div className="ui-page-desc">取引先情報管理ページ</div>
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-96">
-            <label className="block text-xs text-slate-300 mb-1">検索</label>
+      <div className="ui-toolbar">
+        <div className="ui-toolbar-left">
+          <div className="ui-field-search">
+            <label className="ui-field-label">検索</label>
             <input
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
                 reset();
               }}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
+              className="ui-input-keyword"
               placeholder="取引先名 / カナ / Email / 電話 / 担当者…"
             />
           </div>
 
           <div className="w-full sm:w-35">
-            <label className="block text-xs text-slate-300 mb-1">取引先区分</label>
+            <label className="ui-field-label">取引先区分</label>
             <select
               value={partnerType}
               onChange={(e) => {
                 setPartnerType(e.target.value as any);
                 reset();
               }}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-white/10"
+              className="ui-select"
             >
               <option value="">すべて</option>
               <option value="customer">顧客</option>
@@ -401,7 +401,7 @@ export default function PartnerMst() {
             </select>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer mt-1 sm:mt-6">
+          <label className="ui-checkbox-row">
             <input
               type="checkbox"
               checked={includeDeleted}
@@ -409,16 +409,16 @@ export default function PartnerMst() {
                 setIncludeDeleted(e.target.checked);
                 reset();
               }}
-              className="h-4 w-4"
+              className="ui-checkbox"
             />
             <span>削除済みを含める</span>
           </label>
         </div>
 
         {/* Mobile sort */}
-        <div className="sm:hidden flex items-center gap-2">
+        <div className="ui-mobile-sort-area">
           <select
-            className="rounded-lg border border-slate-200 px-2 py-2 text-sm"
+            className="ui-mobile-sort-select"
             value={sortKey}
             onChange={(e) => {
               setSortKey(e.target.value as SortKey);
@@ -447,8 +447,8 @@ export default function PartnerMst() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 rounded-xl border border-white/10 bg-[#0b1220] flex flex-col min-w-0">
-        <div className="hidden sm:block flex-1 min-h-0">
+      <div className="ui-panel">
+        <div className="ui-table-area">
           <DataTable<Partner>
             rows={rows}
             columns={columns}
@@ -458,13 +458,13 @@ export default function PartnerMst() {
             activeSortDir={sortDir}
             onSort={onSort}
             onRowClick={openDetail}
-            rowClassName={(p) => (p.is_deleted ? "opacity-60" : "")}
+            rowClassName={(p) => (p.is_deleted ? "ui-is-deleted" : "")}
           />
           <Pagination page={page} pageSize={DEFAULT_PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
         </div>
 
         {/* Mobile cards */}
-        <div className="sm:hidden flex-1 min-h-0 overflow-auto space-y-2 pb-2">
+        <div className="ui-mobile-list">
           {rows.map((p) => {
             const address = [
               p.postal_code ? `〒${p.postal_code}` : null,
@@ -479,39 +479,24 @@ export default function PartnerMst() {
             return (
               <button
                 key={p.id}
-                className={[
-                  "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
-                  "active:scale-[0.99] transition",
-                  p.is_deleted ? "opacity-60" : "",
-                ].join(" ")}
+                className={["ui-mobile-card", p.is_deleted ? "ui-is-deleted" : "",].join(" ")}
                 onClick={() => openDetail(p)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <div className="font-semibold text-slate-200 truncate">
-                      {p.partner_name}
-                    </div>
-                    <div className="text-xs text-slate-400 truncate">
-                      {p.partner_name_kana}
-                    </div>
-
-                    <div className="text-xs text-slate-300 truncate">
-                      {p.email}
-                    </div>
-
-                    <div className="text-xs text-slate-300">
-                      {p.tel_number ?? "-"}
-                    </div>
-
+                <div className="ui-mobile-card-content">
+                  <div className="ui-mobile-card-row">
+                    <div className="ui-mobile-card-value-main">{p.partner_name}</div>
+                    <div className="ui-mobile-card-value-sub">{p.partner_name_kana}</div>
+                    <div className="ui-mobile-card-value-sub">{p.email}</div>
+                    <div className="ui-mobile-card-value-sub">{p.tel_number ?? "-"}</div>
                     {address && (
-                      <div className="text-xs text-slate-300" title={address}>
+                      <div className="ui-mobile-card-value-sub" title={address}>
                         {address}
                       </div>
                     )}
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-2">
-                    <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
+                  <div className="ui-mobile-card-badge">
+                    <span className="ui-badge-status">
                       {p.is_deleted ? "削除済み" : "有効"}
                     </span>
                   </div>
