@@ -161,10 +161,7 @@ export default function SlideOver<T>({
             </div>
           )}
 
-          {/* Body */}
-          <div className="flex-1 overflow-auto">{children}</div>
-
-          {/* Footer: nav + errors（← ここが “見た目が整う” ポイント） */}
+          {/* Footer: nav + errors */}
           <div className="shrink-0 border-t border-slate-800 p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <button
@@ -198,6 +195,9 @@ export default function SlideOver<T>({
               <pre className="ui-error-message">{saveError}</pre>
             ) : null}
           </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-auto">{children}</div>
         </div>
       </aside>
     </>
