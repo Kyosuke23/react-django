@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import SlideOver from "../../common/components/SlideOver";
 import type { Tenant } from "../../../lib/tenants";
 import { inputClass } from "../../common/features/commonUI";
+import PrefectureSelect from "../../common/components/PrefectureSelect";
 
 export type EditState = {
   tenant_name: string;
@@ -205,7 +206,11 @@ export default function TenantDetailSlideOver(props: Props) {
                 <FieldError messages={fieldErrors.tel_number} />
               </div>
 
+              {/* 住所情報 */}
               <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+                  住所情報
+                </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">郵便番号</label>
                   <input
@@ -216,30 +221,24 @@ export default function TenantDetailSlideOver(props: Props) {
                   />
                   <FieldError messages={fieldErrors.postal_code} />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">都道府県</label>
-                    <input
-                      className={inputClass(!!fieldErrors.state)}
-                      value={edit.state}
-                      onChange={(e) => setEdit((p) => ({ ...p, state: e.target.value }))}
-                      disabled={saving}
-                    />
-                    <FieldError messages={fieldErrors.state} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-1">市区町村</label>
-                    <input
-                      className={inputClass(!!fieldErrors.city)}
-                      value={edit.city}
-                      onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
-                      disabled={saving}
-                    />
-                    <FieldError messages={fieldErrors.city} />
-                  </div>
+                <PrefectureSelect
+                  label="都道府県"
+                  value={edit.state}
+                  onChange={(v) => setEdit((p) => ({ ...p, state: v }))}
+                  disabled={saving}
+                  error={!!fieldErrors.state}
+                  errorMessages={fieldErrors.state}
+                />
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">市区町村</label>
+                  <input
+                    className={inputClass(!!fieldErrors.city)}
+                    value={edit.city}
+                    onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.city} />
                 </div>
-
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">住所</label>
                   <input
@@ -250,7 +249,6 @@ export default function TenantDetailSlideOver(props: Props) {
                   />
                   <FieldError messages={fieldErrors.address} />
                 </div>
-
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">建物名等</label>
                   <input

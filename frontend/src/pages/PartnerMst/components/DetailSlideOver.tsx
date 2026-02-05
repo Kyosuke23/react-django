@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import SlideOver from "../../common/components/SlideOver";
 import type { Partner } from "../../../lib/partners";
 import { inputClass } from "../../common/features/commonUI";
+import PrefectureSelect from "../../common/components/PrefectureSelect";
 
 type EditState = {
   partner_name: string;
@@ -247,64 +248,57 @@ export default function TenantDetailSlideOver(props: Props) {
                 <FieldError messages={fieldErrors.email} />
               </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">郵便番号</label>
-                <input
-                  className={inputClass(!!fieldErrors.postal_code)}
-                  value={edit.postal_code}
-                  onChange={(e) => setEdit((p) => ({ ...p, postal_code: e.target.value }))}
-                  disabled={saving}
-                  placeholder="例）1000001"
-                />
-                <FieldError messages={fieldErrors.postal_code} />
-              </div>
 
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">都道府県</label>
-                <input
-                  className={inputClass(!!fieldErrors.state)}
+              {/* 住所情報 */}
+              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">郵便番号</label>
+                  <input
+                    className={inputClass(!!fieldErrors.postal_code)}
+                    value={edit.postal_code}
+                    onChange={(e) => setEdit((p) => ({ ...p, postal_code: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.postal_code} />
+                </div>
+                <PrefectureSelect
+                  label="都道府県"
                   value={edit.state}
-                  onChange={(e) => setEdit((p) => ({ ...p, state: e.target.value }))}
+                  onChange={(v) => setEdit((p) => ({ ...p, state: v }))}
                   disabled={saving}
-                  placeholder="例）東京都"
+                  error={!!fieldErrors.state}
+                  errorMessages={fieldErrors.state}
                 />
-                <FieldError messages={fieldErrors.state} />
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">市区町村</label>
-                <input
-                  className={inputClass(!!fieldErrors.city)}
-                  value={edit.city}
-                  onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
-                  disabled={saving}
-                  placeholder="例）千代田区"
-                />
-                <FieldError messages={fieldErrors.city} />
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">住所</label>
-                <input
-                  className={inputClass(!!fieldErrors.address)}
-                  value={edit.address}
-                  onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
-                  disabled={saving}
-                  placeholder="例）丸の内1-1-1"
-                />
-                <FieldError messages={fieldErrors.address} />
-              </div>
-
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                <label className="block text-xs text-slate-400 mb-1">建物名など</label>
-                <input
-                  className={inputClass(!!fieldErrors.address2)}
-                  value={edit.address2}
-                  onChange={(e) => setEdit((p) => ({ ...p, address2: e.target.value }))}
-                  disabled={saving}
-                  placeholder="例）〇〇ビル 10F"
-                />
-                <FieldError messages={fieldErrors.address2} />
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">市区町村</label>
+                  <input
+                    className={inputClass(!!fieldErrors.city)}
+                    value={edit.city}
+                    onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.city} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">住所</label>
+                  <input
+                    className={inputClass(!!fieldErrors.address)}
+                    value={edit.address}
+                    onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.address} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">建物名等</label>
+                  <input
+                    className={inputClass(!!fieldErrors.address2)}
+                    value={edit.address2}
+                    onChange={(e) => setEdit((p) => ({ ...p, address2: e.target.value }))}
+                    disabled={saving}
+                  />
+                  <FieldError messages={fieldErrors.address2} />
+                </div>
               </div>
             </div>
           ) : (
