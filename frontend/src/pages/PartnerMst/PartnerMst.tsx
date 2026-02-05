@@ -384,7 +384,7 @@ export default function PartnerMst() {
             />
           </div>
 
-          <div className="w-full sm:w-52">
+          <div className="w-full sm:w-35">
             <label className="block text-xs text-slate-300 mb-1">取引先区分</label>
             <select
               value={partnerType}
@@ -465,31 +465,60 @@ export default function PartnerMst() {
 
         {/* Mobile cards */}
         <div className="sm:hidden flex-1 min-h-0 overflow-auto space-y-2 pb-2">
-          {rows.map((p) => (
-            <button
-              key={p.id}
-              className={[
-                "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
-                "active:scale-[0.99] transition",
-                p.is_deleted ? "opacity-60" : "",
-              ].join(" ")}
-              onClick={() => openDetail(p)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold text-slate-200/900 truncate">{p.partner_name}</div>
-                  <div className="mt-2 text-xs text-slate-200/90 truncate">{p.email}</div>
-                  <div className="text-xs text-slate-200/80">{p.tel_number ?? "-"}</div>
-                </div>
+          {rows.map((p) => {
+            const address = [
+              p.postal_code ? `〒${p.postal_code}` : null,
+              p.state,
+              p.city,
+              p.address,
+              p.address2,
+            ]
+              .filter(Boolean)
+              .join(" ");
 
-                <div className="shrink-0 flex items-center gap-2">
-                  <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
-                    {p.is_deleted ? "削除済み" : "有効"}
-                  </span>
+            return (
+              <button
+                key={p.id}
+                className={[
+                  "w-full text-left rounded-xl border border-slate-700/80 bg-slate-950/30 text-slate-100 p-3",
+                  "active:scale-[0.99] transition",
+                  p.is_deleted ? "opacity-60" : "",
+                ].join(" ")}
+                onClick={() => openDetail(p)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-semibold text-slate-200 truncate">
+                      {p.partner_name}
+                    </div>
+                    <div className="text-xs text-slate-400 truncate">
+                      {p.partner_name_kana}
+                    </div>
+
+                    <div className="text-xs text-slate-300 truncate">
+                      {p.email}
+                    </div>
+
+                    <div className="text-xs text-slate-300">
+                      {p.tel_number ?? "-"}
+                    </div>
+
+                    {address && (
+                      <div className="text-xs text-slate-300" title={address}>
+                        {address}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    <span className="text-[10px] rounded-full border border-slate-600/60 px-2 py-1 text-slate-200 bg-slate-900/30">
+                      {p.is_deleted ? "削除済み" : "有効"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 

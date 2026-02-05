@@ -32,7 +32,7 @@ export function ColumnsTable(opts: {
           <div className="min-w-0">
             <div className="font-medium text-slate-100 truncate">{p.partner_name}</div>
             {p.partner_name_kana ? (
-              <div className="text-xs text-slate-300 truncate">{p.partner_name_kana}</div>
+              <div className="text-xs text-slate-400/80 truncate">{p.partner_name_kana}</div>
             ) : null}
           </div>
         ),
@@ -60,6 +60,27 @@ export function ColumnsTable(opts: {
         label: "担当者名",
         sortKey: "contact_name",
         render: (p: Partner) => p.contact_name ?? "-",
+      },
+      {
+        id: "address",
+        label: "住所",
+        render: (p: Partner) => {
+          const address = [
+            p.postal_code ? `〒${p.postal_code}` : null,
+            p.state,
+            p.city,
+            p.address,
+            p.address2,
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <div className="max-w-[360px] truncate text-sm text-slate-300" title={address}>
+              {address || "-"}
+            </div>
+          );
+        },
       },
       {
         id: "actions",
