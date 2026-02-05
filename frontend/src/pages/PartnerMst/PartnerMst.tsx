@@ -84,6 +84,7 @@ export default function PartnerMst() {
   // -----------------------------
   const [q, setQ] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [partnerType, setPartnerType] = useState<"" | Partner["partner_type"]>("");
 
   // -----------------------------
   // 一覧（rows は今ページのみ）
@@ -172,6 +173,7 @@ export default function PartnerMst() {
     (async () => {
       const data = await listPartnersPaged({
         q,
+        partner_type: partnerType || undefined,
         include_deleted: includeDeleted,
         ordering,
         page,
@@ -199,7 +201,7 @@ export default function PartnerMst() {
     return () => {
       alive = false;
     };
-  }, [q, includeDeleted, ordering, page, pageSize, reloadToken, selectedId, close, flash]);
+  }, [q, partnerType, includeDeleted, ordering, page, pageSize, reloadToken, selectedId, close, flash]);
 
   // -----------------------------
   // 行クリック / 編集開始（アイコン）
@@ -380,6 +382,23 @@ export default function PartnerMst() {
               className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-white/10"
               placeholder="取引先名 / カナ / Email / 電話 / 担当者…"
             />
+          </div>
+
+          <div className="w-full sm:w-52">
+            <label className="block text-xs text-slate-300 mb-1">取引先区分</label>
+            <select
+              value={partnerType}
+              onChange={(e) => {
+                setPartnerType(e.target.value as any);
+                reset();
+              }}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-2 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-white/10"
+            >
+              <option value="">すべて</option>
+              <option value="customer">顧客</option>
+              <option value="supplier">仕入先</option>
+              <option value="both">顧客・仕入先</option>
+            </select>
           </div>
 
           <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer mt-1 sm:mt-6">

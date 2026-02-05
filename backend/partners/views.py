@@ -30,6 +30,14 @@ class PartnerViewSet(viewsets.ModelViewSet):
         if include_deleted != "1":
             qs = qs.filter(is_deleted=False)
 
+        # 取引先区分（partner_type）フィルタ追加
+        partner_type = (self.request.query_params.get("partner_type") or "").strip()
+        if partner_type:
+            allowed = {"customer", "supplier", "both"}
+            if partner_type in allowed:
+                qs = qs.filter(partner_type=partner_type)
+            # else: 不正値は無視
+
         q = (self.request.query_params.get("q") or "").strip()
         if q:
             qs = qs.filter(

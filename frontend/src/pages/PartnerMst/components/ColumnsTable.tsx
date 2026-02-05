@@ -39,7 +39,7 @@ export function ColumnsTable(opts: {
       },
       {
         id: "type",
-        label: "区分",
+        label: "取引先区分",
         sortKey: "partner_type",
         render: (p: Partner) => partnerTypeLabel(p.partner_type),
       },

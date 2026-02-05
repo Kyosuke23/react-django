@@ -46,6 +46,7 @@ export type PartnerUpdatePayload = Partial<
 
 type ListParams = {
   q?: string;
+  partner_type?: Partner["partner_type"];
   include_deleted?: boolean;
   ordering?: string;
   page?: number;
@@ -55,6 +56,7 @@ type ListParams = {
 function buildQuery(params?: ListParams) {
   const sp = new URLSearchParams();
   if (params?.q) sp.set("q", params.q);
+  if (params?.partner_type) sp.set("partner_type", params.partner_type);
   if (params?.include_deleted) sp.set("include_deleted", "1");
   if (params?.ordering) sp.set("ordering", params.ordering);
   if (params?.page) sp.set("page", String(params.page));
