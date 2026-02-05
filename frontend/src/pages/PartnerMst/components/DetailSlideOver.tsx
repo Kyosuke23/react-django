@@ -98,7 +98,7 @@ export default function TenantDetailSlideOver(props: Props) {
           {!isEditing ? (
             <button
               type="button"
-              className="rounded-lg px-3 py-2 text-sm bg-slate-200 text-slate-900 hover:bg-white disabled:opacity-40"
+              className="ui-btn-edit"
               onClick={startEdit}
               disabled={!selected || !!selected?.is_deleted}
               title={selected?.is_deleted ? "削除済みは編集できません" : "編集"}
@@ -109,7 +109,7 @@ export default function TenantDetailSlideOver(props: Props) {
             <>
               <button
                 type="button"
-                className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 hover:bg-slate-900/40 disabled:opacity-40"
+                className="ui-btn-cancel"
                 onClick={cancelEdit}
                 disabled={saving}
               >
@@ -118,7 +118,7 @@ export default function TenantDetailSlideOver(props: Props) {
 
               <button
                 type="button"
-                className="rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+                className="ui-btn-save"
                 onClick={saveEdit}
                 disabled={saving}
               >
@@ -134,7 +134,7 @@ export default function TenantDetailSlideOver(props: Props) {
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
-            className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+            className="ui-btn-nav"
             onClick={goPrev}
             disabled={!hasPrev || isEditing}
             title={isEditing ? "編集中は移動できません" : "前の明細"}
@@ -148,7 +148,7 @@ export default function TenantDetailSlideOver(props: Props) {
 
           <button
             type="button"
-            className="rounded-lg px-3 py-2 text-sm border border-slate-700 text-slate-200 disabled:opacity-40"
+            className="ui-btn-nav"
             onClick={goNext}
             disabled={!hasNext || isEditing}
             title={isEditing ? "編集中は移動できません" : "次の明細"}
@@ -157,13 +157,12 @@ export default function TenantDetailSlideOver(props: Props) {
           </button>
         </div>
 
-        {/* non_field_errors を優先表示 */}
         {fieldErrors.non_field_errors?.length ? (
-          <pre className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+          <pre className="ui-error-message">
             {fieldErrors.non_field_errors.join("\n")}
           </pre>
         ) : saveError ? (
-          <pre className="whitespace-pre-wrap rounded-lg border border-rose-500/30 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+          <pre className="ui-error-message">
             {saveError}
           </pre>
         ) : null}
@@ -172,12 +171,12 @@ export default function TenantDetailSlideOver(props: Props) {
           isEditing ? (
             <div className="space-y-3">
               {/* 基本情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+              <div className="ui-card ui-card-stack">
+                <div className="ui-subtitle">
                   基本情報
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">取引先名称</label>
+                  <label className="ui-label">取引先名称</label>
                   <input
                     className={inputClass(!!fieldErrors.partner_name)}
                     value={edit.partner_name}
@@ -187,7 +186,7 @@ export default function TenantDetailSlideOver(props: Props) {
                   <FieldError messages={fieldErrors.partner_name} />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">取引先名称（カナ）</label>
+                  <label className="ui-label">取引先名称（カナ）</label>
                   <input
                     className={inputClass(!!fieldErrors.partner_name_kana)}
                     value={edit.partner_name_kana}
@@ -197,7 +196,7 @@ export default function TenantDetailSlideOver(props: Props) {
                   <FieldError messages={fieldErrors.partner_name_kana} />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">区分</label>
+                  <label className="ui-label">区分</label>
                   <select
                     className={inputClass(!!fieldErrors.partner_type)}
                     value={edit.partner_type}
@@ -218,12 +217,12 @@ export default function TenantDetailSlideOver(props: Props) {
               </div>
 
               {/* 連絡先情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+              <div className="ui-card ui-card-stack">
+                <div className="ui-subtitle">
                   連絡先情報
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">担当者名</label>
+                  <label className="ui-label">担当者名</label>
                   <input
                     className={inputClass(!!fieldErrors.contact_name)}
                     value={edit.contact_name}
@@ -234,7 +233,7 @@ export default function TenantDetailSlideOver(props: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">電話番号</label>
+                  <label className="ui-label">電話番号</label>
                   <input
                     className={inputClass(!!fieldErrors.tel_number)}
                     value={edit.tel_number}
@@ -246,7 +245,7 @@ export default function TenantDetailSlideOver(props: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">E-Mail</label>
+                  <label className="ui-label">E-Mail</label>
                   <input
                     className={inputClass(!!fieldErrors.email)}
                     value={edit.email}
@@ -259,9 +258,9 @@ export default function TenantDetailSlideOver(props: Props) {
               </div>
 
               {/* 住所情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
+              <div className="ui-card ui-card-stack">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">郵便番号</label>
+                  <label className="ui-label">郵便番号</label>
                   <input
                     className={inputClass(!!fieldErrors.postal_code)}
                     value={edit.postal_code}
@@ -279,7 +278,7 @@ export default function TenantDetailSlideOver(props: Props) {
                   errorMessages={fieldErrors.state}
                 />
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">市区町村</label>
+                  <label className="ui-label">市区町村</label>
                   <input
                     className={inputClass(!!fieldErrors.city)}
                     value={edit.city}
@@ -289,7 +288,7 @@ export default function TenantDetailSlideOver(props: Props) {
                   <FieldError messages={fieldErrors.city} />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">住所</label>
+                  <label className="ui-label">住所</label>
                   <input
                     className={inputClass(!!fieldErrors.address)}
                     value={edit.address}
@@ -299,7 +298,7 @@ export default function TenantDetailSlideOver(props: Props) {
                   <FieldError messages={fieldErrors.address} />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">建物名等</label>
+                  <label className="ui-label">建物名等</label>
                   <input
                     className={inputClass(!!fieldErrors.address2)}
                     value={edit.address2}
@@ -313,59 +312,59 @@ export default function TenantDetailSlideOver(props: Props) {
           ) : (
             <dl className="space-y-3">
               {/* 基本情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+              <div className="ui-card ui-card-stack">
+                <div className="ui-subtitle">
                   基本情報
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">取引先名称</dt>
-                  <dd className="text-sm font-medium break-all">{selected.partner_name}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">取引先名称</dt>
+                  <dd className="ui-value">{selected.partner_name}</dd>
                 </div>
 
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">取引先名称（カナ）</dt>
-                  <dd className="text-sm">{selected.partner_name_kana}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">取引先名称（カナ）</dt>
+                  <dd className="ui-value">{selected.partner_name_kana}</dd>
                 </div>
 
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">区分</dt>
-                  <dd className="text-sm">
+                <div className="ui-card">
+                  <dt className="ui-label">区分</dt>
+                  <dd className="ui-value">
                     {partnerTypeLabel(selected.partner_type)}
                   </dd>
                 </div>
               </div>
 
               {/* 連絡先情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+              <div className="ui-card ui-card-stack">
+                <div className="ui-subtitle">
                   連絡先情報
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">担当者名</dt>
-                  <dd className="text-sm">{selected.contact_name}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">担当者名</dt>
+                  <dd className="ui-value">{selected.contact_name}</dd>
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">Email</dt>
-                  <dd className="text-sm break-all">{selected.email}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">Email</dt>
+                  <dd className="ui-value">{selected.email}</dd>
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">電話</dt>
-                  <dd className="text-sm">{selected.tel_number ?? "-"}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">電話</dt>
+                  <dd className="ui-value">{selected.tel_number ?? "-"}</dd>
                 </div>
               </div>
 
               {/* 住所情報 */}
-              <div className="rounded-lg bg-slate-900/60 px-4 py-3 space-y-2">
-                <div className="text-sm font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-2">
+              <div className="ui-card ui-card-stack">
+                <div className="ui-subtitle">
                   住所情報
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">郵便番号</dt>
-                  <dd className="text-sm break-all">{selected.postal_code ? `〒${selected.postal_code}` : null}</dd>
+                <div className="ui-card">
+                  <dt className="ui-label">郵便番号</dt>
+                  <dd className="ui-value">{selected.postal_code ? `〒${selected.postal_code}` : null}</dd>
                 </div>
-                <div className="rounded-lg bg-slate-900/60 px-4 py-3">
-                  <dt className="text-xs text-slate-400 mb-1">住所</dt>
-                  <dd className="text-sm">
+                <div className="ui-card">
+                  <dt className="ui-label">住所</dt>
+                  <dd className="ui-value">
                     {[
                       selected.state,
                       selected.city,
@@ -380,7 +379,7 @@ export default function TenantDetailSlideOver(props: Props) {
             </dl>
           )
         ) : (
-          <div className="text-sm text-slate-500">行を選択してください</div>
+          <div className="ui-value">行を選択してください</div>
         )}
       </div>
     </SlideOver>
