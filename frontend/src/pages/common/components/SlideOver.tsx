@@ -1,83 +1,89 @@
 import type { ReactNode } from "react";
 import { useEscapeKey } from "../../../hooks/useEscapeKey";
 
-type Props<T> = {
-  open: boolean;
-  onClose: () => void;
-
-  selected: T | null;
-
-  // ナビゲーション（今ページ内）
+/**
+ * 明細ナビゲーションプロパティ
+ */
+export type NavProps = {
   selectedIndex: number; // -1 のとき未選択
   rowsLength: number;
   hasPrev: boolean;
   hasNext: boolean;
   goPrev: () => void;
   goNext: () => void;
+};
 
-  /** Left side header texts */
-  title?: ReactNode;
-  subtitle?: ReactNode;
-
-  children: ReactNode;
-
+/**
+ * 編集状態プロパティ
+ */
+export type EditProps = {
   isEditing: boolean;
   saving: boolean;
-
-  // エラー
-  saveError: string | null;
-  fieldErrors: Record<string, string[]>;
-
-  // 操作
   startEdit: () => void;
   cancelEdit: () => void;
   saveEdit: () => void;
+};
 
-  // 削除済判定（受け取るデータ型がジェネリクス型のため）
+/**
+ * フィールドエラープロパティ
+ */
+export type ErrorsProps = {
+  saveError: string | null;
+  fieldErrors: Record<string, string[]>;
+};
+
+/**
+ * 汎用プロパティ
+ */
+type Props<T> = {
+  open: boolean;
+  onClose: () => void;
+  selected: T | null;
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  children: ReactNode;
+
+  nav: NavProps;
+  edit: EditProps;
+  errors: ErrorsProps;
+
   isDeleted?: (row: T) => boolean;
-
-  /**
-   * Tailwind width classes for desktop. Mobile is always full width.
-   * Example: "sm:max-w-md" (default)
-   */
   maxWidthClassName?: string;
-
-  /** Optional theme overrides */
   panelClassName?: string;
   headerClassName?: string;
-
-  /** Close button control */
   showCloseButton?: boolean;
 };
+
+export function FieldError({ messages }: { messages?: string[] }) {
+  if (!messages?.length) return null;
+  return <p className="mt-1 text-xs text-rose-400">{messages.join(", ")}</p>;
+}
 
 export default function SlideOver<T>({
   open,
   onClose,
   selected,
-  selectedIndex,
-  rowsLength,
-  hasPrev,
-  hasNext,
-  goPrev,
-  goNext,
   title,
   subtitle,
   children,
-  isEditing,
-  saving,
-  saveError,
-  fieldErrors,
+  nav,
+  edit,
+  errors,
   isDeleted,
   maxWidthClassName = "sm:max-w-md",
   panelClassName = "bg-slate-950 text-slate-100",
   headerClassName = "border-b border-slate-800",
   showCloseButton = true,
-  startEdit,
-  cancelEdit,
-  saveEdit,
 }: Props<T>) {
   useEscapeKey(open, onClose);
+
   const deleted = selected && isDeleted ? isDeleted(selected) : false;
+
+  const { selectedIndex, rowsLength, hasPrev, hasNext, goPrev, goNext } = nav;
+  const { isEditing, saving, startEdit, cancelEdit, saveEdit } = edit;
+  const { saveError, fieldErrors } = errors;
+
+  const nonField = fieldErrors.non_field_errors ?? [];
 
   return (
     <>
@@ -118,46 +124,48 @@ export default function SlideOver<T>({
                   ))}
               </div>
 
-              {/* Right (actions + close) */}
+              {/* Right (actions) */}
               <div className="shrink-0 flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  {!isEditing ? (
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    className="ui-btn-edit"
+                    onClick={startEdit}
+                    disabled={!selected || deleted}
+                    title={deleted ? "削除済みは編集できません" : "編集"}
+                  >
+                    編集
+                  </button>
+                ) : (
+                  <>
                     <button
                       type="button"
-                      className="ui-btn-edit"
-                      onClick={startEdit}
-                      disabled={!selected || deleted}
-                      title={deleted ? "削除済みは編集できません" : "編集"}
+                      className="ui-btn-cancel"
+                      onClick={cancelEdit}
+                      disabled={saving}
                     >
-                      編集
+                      キャンセル
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="ui-btn-cancel"
-                        onClick={cancelEdit}
-                        disabled={saving}
-                      >
-                        キャンセル
-                      </button>
 
-                      <button
-                        type="button"
-                        className="ui-btn-save"
-                        onClick={saveEdit}
-                        disabled={saving}
-                      >
-                        {saving ? "保存中..." : "保存"}
-                      </button>
-                    </>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      className="ui-btn-save"
+                      onClick={saveEdit}
+                      disabled={saving}
+                    >
+                      {saving ? "保存中..." : "保存"}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
-          <div className="p-4 space-y-3">
-            {/* 前へ / 次へ */}
+
+          {/* Body */}
+          <div className="flex-1 overflow-auto">{children}</div>
+
+          {/* Footer: nav + errors（← ここが “見た目が整う” ポイント） */}
+          <div className="shrink-0 border-t border-slate-800 p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
@@ -184,17 +192,12 @@ export default function SlideOver<T>({
               </button>
             </div>
 
-            {fieldErrors.non_field_errors?.length ? (
-              <pre className="ui-error-message">
-                {fieldErrors.non_field_errors.join("\n")}
-              </pre>
+            {nonField.length ? (
+              <pre className="ui-error-message">{nonField.join("\n")}</pre>
             ) : saveError ? (
-              <pre className="ui-error-message">
-                {saveError}
-              </pre>
+              <pre className="ui-error-message">{saveError}</pre>
             ) : null}
           </div>
-          <div className="flex-1 overflow-auto">{children}</div>
         </div>
       </aside>
     </>

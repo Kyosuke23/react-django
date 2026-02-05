@@ -8,7 +8,8 @@ import { usePagination } from "../../hooks/usePagination";
 import { DEFAULT_PAGE_SIZE } from "../../constants/pagination";
 import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
-import TenantDetailSlideOver from "./components/DetailSlideOver";
+import DetailSlideOver from "./components/DetailSlideOver";
+import { normalizeApiError } from "../../lib/errors";
 
 
 type SortKey =
@@ -232,12 +233,12 @@ export default function TenantMst() {
         await deleteTenant(id);
         bumpReload();
         flash.success("削除に成功しました")
-      } catch (e) {
-        console.error(e);
-        flash.error("削除に失敗しました")
+      } catch (e: unknown) {
+        const ne = normalizeApiError(e);
+        console.error(ne.raw);
+        flash.error(ne.message);
       }
-    },
-    [bumpReload]
+    }, [bumpReload, flash]
   );
 
   // -----------------------------
@@ -250,9 +251,10 @@ export default function TenantMst() {
       await restoreTenant(id);
       bumpReload();
       flash.success("復元しました");
-    } catch (e) {
-      console.error(e);
-      flash.error("復元に失敗しました");
+    } catch (e: unknown) {
+      const ne = normalizeApiError(e);
+      console.error(ne.raw);
+      flash.error(ne.message);
     }
   }, [bumpReload, flash]);
 
@@ -316,18 +318,14 @@ export default function TenantMst() {
       setFieldErrors({});
       bumpReload();
       flash.success("保存しました");
-    } catch (e: any) {
-      const data = e?.data;
-      if (data && typeof data === "object") {
-        setFieldErrors(data);
-        setSaveError("入力項目に誤りがあります");
-      } else {
-        setSaveError(e?.message || "保存に失敗しました");
-      }
+    } catch (e: unknown) {
+      const ne = normalizeApiError(e);
+      if (ne.fieldErrors) setFieldErrors(ne.fieldErrors);
+      setSaveError(ne.message);
     } finally {
       setSaving(false);
     }
-  }, [selectedId, edit, bumpReload]);
+  }, [selectedId, edit, bumpReload, flash]);
 
   // -----------------------------
   // ソート：変更時は必ず 1ページ目へ
@@ -342,7 +340,7 @@ export default function TenantMst() {
         setSortDir("asc");
       }
     },
-    [sortKey, setPage]
+    [sortKey, reset]
   );
 
   // -----------------------------
@@ -477,7 +475,7 @@ export default function TenantMst() {
       </div>
 
       {/* Detail slide-over */}
-      <TenantDetailSlideOver
+      <DetailSlideOver
         open={detailOpen}
         onClose={() => {
           setIsEditing(false);
@@ -486,21 +484,10 @@ export default function TenantMst() {
           close();
         }}
         selected={selected}
-        selectedIndex={selectedIndex}
-        rowsLength={rows.length}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        goPrev={goPrev}
-        goNext={goNext}
-        isEditing={isEditing}
-        saving={saving}
-        edit={edit}
-        setEdit={setEdit}
-        saveError={saveError}
-        fieldErrors={fieldErrors}
-        startEdit={startEdit}
-        cancelEdit={cancelEdit}
-        saveEdit={saveEdit}
+        nav={{ selectedIndex, rowsLength: rows.length, hasPrev, hasNext, goPrev, goNext }}
+        edit={{ isEditing, saving, startEdit, cancelEdit, saveEdit }}
+        errors={{ saveError, fieldErrors }}
+        form={{ editState: edit, setEdit }}
       />
     </div>
   );

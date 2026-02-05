@@ -3,6 +3,8 @@ import SlideOver from "../../common/components/SlideOver";
 import type { Partner } from "../../../lib/partners";
 import { inputClass } from "../../common/features/commonUI";
 import PrefectureSelect from "../../common/components/PrefectureSelect";
+import type { NavProps, EditProps, ErrorsProps } from "../../common/components/SlideOver";
+import { FieldError } from "../../common/components/SlideOver";
 
 type EditState = {
   partner_name: string;
@@ -21,36 +23,15 @@ type EditState = {
 type Props = {
   open: boolean;
   onClose: () => void;
-
   selected: Partner | null;
-  selectedIndex: number;
-  rowsLength: number;
-
-  hasPrev: boolean;
-  hasNext: boolean;
-  goPrev: () => void;
-  goNext: () => void;
-
-  isEditing: boolean;
-  saving: boolean;
-
-  edit: EditState;
-  setEdit: React.Dispatch<React.SetStateAction<EditState>>;
-
-  saveError: string | null;
-  fieldErrors: Record<string, string[]>;
-
-  // 操作
-  startEdit: () => void;
-  cancelEdit: () => void;
-  saveEdit: () => void;
+  nav: NavProps;
+  edit: EditProps;
+  errors: ErrorsProps;
+  form: {
+    editState: EditState;
+    setEdit: React.Dispatch<React.SetStateAction<EditState>>;
+  };
 };
-
-
-function FieldError({ messages }: { messages?: string[] }) {
-  if (!messages?.length) return null;
-  return <p className="mt-1 text-xs text-rose-400">{messages.join(", ")}</p>;
-}
 
 function partnerTypeLabel(v: Partner["partner_type"]) {
   switch (v) {
@@ -65,53 +46,33 @@ function partnerTypeLabel(v: Partner["partner_type"]) {
   }
 }
 
-export default function TenantDetailSlideOver(props: Props) {
+export default function DetailSlideOver(props: Props) {
   const {
     open,
     onClose,
     selected,
-    selectedIndex,
-    rowsLength,
-    hasPrev,
-    hasNext,
-    goPrev,
-    goNext,
-    isEditing,
-    saving,
+    nav,
     edit,
-    setEdit,
-    saveError,
-    fieldErrors,
-    startEdit,
-    cancelEdit,
-    saveEdit,
+    errors,
+    form,
   } = props;
 
-  const title = useMemo(() => (isEditing ? "データ編集" : "詳細データ"), [isEditing]);
+  const { editState, setEdit } = form;
+  const title = useMemo(() => (edit.isEditing ? "データ編集" : "詳細データ"), [edit.isEditing]);
 
   return (
     <SlideOver
       open={open}
       onClose={onClose}
       selected={selected}
-      selectedIndex={selectedIndex}
-      rowsLength={rowsLength}
-      hasPrev={hasPrev}
-      hasNext={hasNext}
-      goPrev={goPrev}
-      goNext={goNext}
       title={title}
-      isEditing={isEditing}
-      saving={saving}
-      saveError={saveError}
-      fieldErrors={fieldErrors}
-      startEdit={startEdit}
-      cancelEdit={cancelEdit}
-      saveEdit={saveEdit}
-      isDeleted={(p) => p.is_deleted}
+      nav={ nav }
+      edit={ edit }
+      errors={ errors }
+      isDeleted={(p: Partner) => p.is_deleted}
     >
       {selected ? (
-        isEditing ? (
+        edit.isEditing ? (
           <div className="space-y-3">
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
@@ -121,41 +82,41 @@ export default function TenantDetailSlideOver(props: Props) {
               <div>
                 <label className="ui-label">取引先名称</label>
                 <input
-                  className={inputClass(!!fieldErrors.partner_name)}
-                  value={edit.partner_name}
+                  className={inputClass(!!errors.fieldErrors.partner_name)}
+                  value={editState.partner_name}
                   onChange={(e) => setEdit((p) => ({ ...p, partner_name: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.partner_name} />
+                <FieldError messages={errors.fieldErrors.partner_name} />
               </div>
               <div>
                 <label className="ui-label">取引先名称（カナ）</label>
                 <input
-                  className={inputClass(!!fieldErrors.partner_name_kana)}
-                  value={edit.partner_name_kana}
+                  className={inputClass(!!errors.fieldErrors.partner_name_kana)}
+                  value={editState.partner_name_kana}
                   onChange={(e) => setEdit((p) => ({ ...p, partner_name_kana: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.partner_name_kana} />
+                <FieldError messages={errors.fieldErrors.partner_name_kana} />
               </div>
               <div>
-                <label className="ui-label">区分</label>
+                <label className="ui-label">取引先区分</label>
                 <select
-                  className={inputClass(!!fieldErrors.partner_type)}
-                  value={edit.partner_type}
+                  className={inputClass(!!errors.fieldErrors.partner_type)}
+                  value={editState.partner_type}
                   onChange={(e) =>
                     setEdit((p) => ({
                       ...p,
                       partner_type: e.target.value as Partner["partner_type"],
                     }))
                   }
-                  disabled={saving}
+                  disabled={edit.saving}
                 >
                   <option value="customer">顧客</option>
                   <option value="supplier">仕入先</option>
                   <option value="both">顧客・仕入先</option>
                 </select>
-                <FieldError messages={fieldErrors.partner_type} />
+                <FieldError messages={errors.fieldErrors.partner_type} />
               </div>
             </div>
 
@@ -167,36 +128,36 @@ export default function TenantDetailSlideOver(props: Props) {
               <div>
                 <label className="ui-label">担当者名</label>
                 <input
-                  className={inputClass(!!fieldErrors.contact_name)}
-                  value={edit.contact_name}
+                  className={inputClass(!!errors.fieldErrors.contact_name)}
+                  value={editState.contact_name}
                   onChange={(e) => setEdit((p) => ({ ...p, contact_name: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.contact_name} />
+                <FieldError messages={errors.fieldErrors.contact_name} />
               </div>
 
               <div>
                 <label className="ui-label">電話番号</label>
                 <input
-                  className={inputClass(!!fieldErrors.tel_number)}
-                  value={edit.tel_number}
+                  className={inputClass(!!errors.fieldErrors.tel_number)}
+                  value={editState.tel_number}
                   onChange={(e) => setEdit((p) => ({ ...p, tel_number: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                   placeholder="例）03-1234-5678"
                 />
-                <FieldError messages={fieldErrors.tel_number} />
+                <FieldError messages={errors.fieldErrors.tel_number} />
               </div>
 
               <div>
                 <label className="ui-label">E-Mail</label>
                 <input
-                  className={inputClass(!!fieldErrors.email)}
-                  value={edit.email}
+                  className={inputClass(!!errors.fieldErrors.email)}
+                  value={editState.email}
                   onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                   placeholder="example@example.com"
                 />
-                <FieldError messages={fieldErrors.email} />
+                <FieldError messages={errors.fieldErrors.email} />
               </div>
             </div>
 
@@ -205,50 +166,50 @@ export default function TenantDetailSlideOver(props: Props) {
               <div>
                 <label className="ui-label">郵便番号</label>
                 <input
-                  className={inputClass(!!fieldErrors.postal_code)}
-                  value={edit.postal_code}
+                  className={inputClass(!!errors.fieldErrors.postal_code)}
+                  value={editState.postal_code}
                   onChange={(e) => setEdit((p) => ({ ...p, postal_code: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.postal_code} />
+                <FieldError messages={errors.fieldErrors.postal_code} />
               </div>
               <PrefectureSelect
                 label="都道府県"
-                value={edit.state}
+                value={editState.state}
                 onChange={(v) => setEdit((p) => ({ ...p, state: v }))}
-                disabled={saving}
-                error={!!fieldErrors.state}
-                errorMessages={fieldErrors.state}
+                disabled={edit.saving}
+                error={!!errors.fieldErrors.state}
+                errorMessages={errors.fieldErrors.state}
               />
               <div>
                 <label className="ui-label">市区町村</label>
                 <input
-                  className={inputClass(!!fieldErrors.city)}
-                  value={edit.city}
+                  className={inputClass(!!errors.fieldErrors.city)}
+                  value={editState.city}
                   onChange={(e) => setEdit((p) => ({ ...p, city: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.city} />
+                <FieldError messages={errors.fieldErrors.city} />
               </div>
               <div>
                 <label className="ui-label">住所</label>
                 <input
-                  className={inputClass(!!fieldErrors.address)}
-                  value={edit.address}
+                  className={inputClass(!!errors.fieldErrors.address)}
+                  value={editState.address}
                   onChange={(e) => setEdit((p) => ({ ...p, address: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.address} />
+                <FieldError messages={errors.fieldErrors.address} />
               </div>
               <div>
                 <label className="ui-label">建物名等</label>
                 <input
-                  className={inputClass(!!fieldErrors.address2)}
-                  value={edit.address2}
+                  className={inputClass(!!errors.fieldErrors.address2)}
+                  value={editState.address2}
                   onChange={(e) => setEdit((p) => ({ ...p, address2: e.target.value }))}
-                  disabled={saving}
+                  disabled={edit.saving}
                 />
-                <FieldError messages={fieldErrors.address2} />
+                <FieldError messages={errors.fieldErrors.address2} />
               </div>
             </div>
           </div>
