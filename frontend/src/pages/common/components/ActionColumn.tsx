@@ -13,6 +13,8 @@ export type ColumnDefLike<T> = {
   tdClassName?: string;
 };
 
+type HasIsDeleted = { is_deleted?: boolean};
+
 type Options<T> = {
   /** 編集押下時 */
   onEdit: (row: T) => void;
@@ -36,11 +38,11 @@ type Options<T> = {
   stopPropagation?: boolean;
 };
 
-export function createActionColumn<T>({
+export function createActionColumn<T extends HasIsDeleted>({
   onEdit,
   onDelete,
   onRestore,
-  getIsDeleted = (row: any) => Boolean(row?.is_deleted),
+  getIsDeleted = (row) => Boolean(row.is_deleted),
   id = "actions",
   label = "",
   thClassName = "text-right",
