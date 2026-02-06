@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { type Partner, type PartnerUpdatePayload, buildQuery } from "../../lib/partners";
 import { exportCSV } from "../../lib/io";
 import { getYMDHMS } from "../../lib/api";
+import { useRowNavigator } from "../../hooks/useRowNavigator";
 import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
 import DataTable from "../common/components/DataTable";
 import type { SortDir } from "../common/components/DataTable";
@@ -298,27 +299,15 @@ export default function PartnerMst() {
   );
 
   // -----------------------------
-  // 前へ / 次へ（今ページのみ）
+  // 明細行移動（詳細表示）
   // -----------------------------
-  const selectedIndex = useMemo(() => {
-    if (selectedId == null) return -1;
-    return rows.findIndex((r) => r.id === selectedId);
-  }, [rows, selectedId]);
-
-  const hasPrev = selectedIndex > 0;
-  const hasNext = selectedIndex >= 0 && selectedIndex < rows.length - 1;
-
-  const goPrev = useCallback(() => {
-    if (isEditing) return;
-    if (!hasPrev) return;
-    setSelectedId(rows[selectedIndex - 1].id);
-  }, [isEditing, hasPrev, rows, selectedIndex]);
-
-  const goNext = useCallback(() => {
-    if (isEditing) return;
-    if (!hasNext) return;
-    setSelectedId(rows[selectedIndex + 1].id);
-  }, [isEditing, hasNext, rows, selectedIndex]);
+  const { selectedIndex, hasPrev, hasNext, goPrev, goNext } = useRowNavigator({
+    rows,
+    getId: (p) => p.id,
+    selectedId,
+    setSelectedId,
+    canNavigate: !isEditing,
+  });
 
   // -----------------------------
   // 編集：開始/キャンセル/保存（詳細内ボタン）
