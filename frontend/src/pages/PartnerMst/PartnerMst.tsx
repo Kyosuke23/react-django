@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { exportCSV, type Partner, type PartnerUpdatePayload } from "../../lib/partners";
+import { type Partner, type PartnerUpdatePayload, buildQuery } from "../../lib/partners";
+import { exportCSV } from "../../lib/io";
+import { getYMDHMS } from "../../lib/api";
 import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
 import DataTable from "../common/components/DataTable";
 import type { SortDir } from "../common/components/DataTable";
@@ -407,17 +409,20 @@ export default function PartnerMst() {
   // -----------------------------
   const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
 
-
   // -----------------------------
   // CSV出力処理
   // -----------------------------
   const onExportCsv = useCallback(async () => {
     try {
       const { blob, filename } = await exportCSV({
-        q,
-        partner_type: partnerType || undefined,
-        include_deleted: includeDeleted,
-        ordering,
+        path: "/api/partners/export",
+        query: buildQuery({
+          q,
+          partner_type: partnerType || undefined,
+          include_deleted: includeDeleted,
+          ordering,
+        }),
+        filename: `partners_${getYMDHMS()}.csv`,
       });
 
       const url = URL.createObjectURL(blob);
@@ -428,6 +433,7 @@ export default function PartnerMst() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
     } catch (e) {
       const ne = normalizeApiError(e);
       console.error(ne.raw);

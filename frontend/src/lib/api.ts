@@ -66,3 +66,20 @@ export async function apiFetch(
 
   return res;
 }
+
+/**
+ * YYYYMMDDHHMMSS形式の日付を生成する
+ * @param d 指定の日付（デフォルト: 現在時刻）
+ * @returns フォーマットされた日付（YYYYMMDDHHMMSS形式）
+ */
+export function getYMDHMS(d = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    d.getFullYear() +
+    pad(d.getMonth() + 1) +
+    pad(d.getDate()) +
+    pad(d.getHours()) +
+    pad(d.getMinutes()) +
+    pad(d.getSeconds())
+  );
+}
