@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import SlideOver from "../../common/components/SlideOver";
 import type { Partner } from "../../../lib/partners";
 import { inputClass } from "../../common/features/commonUI";
@@ -29,7 +30,7 @@ type Props = {
   errors: ErrorsProps;
   form: {
     editState: EditState;
-    setEdit: React.Dispatch<React.SetStateAction<EditState>>;
+    setEdit: Dispatch<SetStateAction<EditState>>;
   };
 };
 
@@ -47,18 +48,16 @@ function partnerTypeLabel(v: Partner["partner_type"]) {
 }
 
 export default function DetailSlideOver(props: Props) {
-  const {
-    open,
-    onClose,
-    selected,
-    nav,
-    edit,
-    errors,
-    form,
-  } = props;
-
+  const { open, onClose, selected, nav, edit, errors, form } = props;
   const { editState, setEdit } = form;
-  const title = useMemo(() => (edit.isEditing ? "データ編集" : "詳細データ"), [edit.isEditing]);
+
+  // 新規登録モード：selected が null でも edit.isEditing=true の状態で開く想定
+  const isCreate = selected == null && edit.isEditing;
+
+  const title = useMemo(() => {
+    if (isCreate) return "新規登録";
+    return edit.isEditing ? "データ編集" : "詳細データ";
+  }, [isCreate, edit.isEditing]);
 
   return (
     <SlideOver
@@ -66,19 +65,18 @@ export default function DetailSlideOver(props: Props) {
       onClose={onClose}
       selected={selected}
       title={title}
-      nav={ nav }
-      edit={ edit }
-      errors={ errors }
+      nav={nav}
+      edit={edit}
+      errors={errors}
       isDeleted={(p: Partner) => p.is_deleted}
     >
-      {selected ? (
+      {selected || isCreate ? (
         edit.isEditing ? (
           <div className="space-y-3">
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                基本情報
-              </div>
+              <div className="ui-subtitle">基本情報</div>
+
               <div>
                 <label className="ui-label">取引先名称</label>
                 <input
@@ -89,6 +87,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.partner_name} />
               </div>
+
               <div>
                 <label className="ui-label">取引先名称（カナ）</label>
                 <input
@@ -99,6 +98,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.partner_name_kana} />
               </div>
+
               <div>
                 <label className="ui-label">取引先区分</label>
                 <select
@@ -122,9 +122,8 @@ export default function DetailSlideOver(props: Props) {
 
             {/* 連絡先情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                連絡先情報
-              </div>
+              <div className="ui-subtitle">連絡先情報</div>
+
               <div>
                 <label className="ui-label">担当者名</label>
                 <input
@@ -173,6 +172,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.postal_code} />
               </div>
+
               <PrefectureSelect
                 label="都道府県"
                 value={editState.state}
@@ -181,6 +181,7 @@ export default function DetailSlideOver(props: Props) {
                 error={!!errors.fieldErrors.state}
                 errorMessages={errors.fieldErrors.state}
               />
+
               <div>
                 <label className="ui-label">市区町村</label>
                 <input
@@ -191,6 +192,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.city} />
               </div>
+
               <div>
                 <label className="ui-label">住所</label>
                 <input
@@ -201,6 +203,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.address} />
               </div>
+
               <div>
                 <label className="ui-label">建物名等</label>
                 <input
@@ -213,13 +216,12 @@ export default function DetailSlideOver(props: Props) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : selected ? (
           <dl className="space-y-3">
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                基本情報
-              </div>
+              <div className="ui-subtitle">基本情報</div>
+
               <div className="ui-card">
                 <dt className="ui-label">取引先名称</dt>
                 <dd className="ui-value">{selected.partner_name}</dd>
@@ -232,25 +234,24 @@ export default function DetailSlideOver(props: Props) {
 
               <div className="ui-card">
                 <dt className="ui-label">区分</dt>
-                <dd className="ui-value">
-                  {partnerTypeLabel(selected.partner_type)}
-                </dd>
+                <dd className="ui-value">{partnerTypeLabel(selected.partner_type)}</dd>
               </div>
             </div>
 
             {/* 連絡先情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                連絡先情報
-              </div>
+              <div className="ui-subtitle">連絡先情報</div>
+
               <div className="ui-card">
                 <dt className="ui-label">担当者名</dt>
                 <dd className="ui-value">{selected.contact_name}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">Email</dt>
                 <dd className="ui-value">{selected.email}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">電話</dt>
                 <dd className="ui-value">{selected.tel_number ?? "-"}</dd>
@@ -259,28 +260,25 @@ export default function DetailSlideOver(props: Props) {
 
             {/* 住所情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                住所情報
-              </div>
+              <div className="ui-subtitle">住所情報</div>
+
               <div className="ui-card">
                 <dt className="ui-label">郵便番号</dt>
                 <dd className="ui-value">{selected.postal_code ? `〒${selected.postal_code}` : null}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">住所</dt>
                 <dd className="ui-value">
-                  {[
-                    selected.state,
-                    selected.city,
-                    selected.address,
-                    selected.address2,
-                  ]
+                  {[selected.state, selected.city, selected.address, selected.address2]
                     .filter(Boolean)
                     .join(" ")}
                 </dd>
               </div>
             </div>
           </dl>
+        ) : (
+          <div className="ui-value">新規登録を開始してください</div>
         )
       ) : (
         <div className="ui-value">行を選択してください</div>

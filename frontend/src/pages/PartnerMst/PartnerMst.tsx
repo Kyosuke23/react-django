@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Partner, PartnerUpdatePayload } from "../../lib/partners";
-import { listPartnersPaged, deletePartner, restorePartner, updatePartner } from "../../lib/partners";
+import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
 import DataTable from "../common/components/DataTable";
 import type { SortDir } from "../common/components/DataTable";
 import Pagination from "../common/components/Pagination";
@@ -98,6 +98,11 @@ export default function PartnerMst() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   // -----------------------------
+  // 登録
+  // -----------------------------
+  const [isCreating, setIsCreating] = useState(false);
+
+  // -----------------------------
   // 編集
   // -----------------------------
   const [isEditing, setIsEditing] = useState(false);
@@ -154,6 +159,9 @@ export default function PartnerMst() {
    * - ★編集中は rows 更新が入っても edit を上書きしない（入力が消えるのを防止）
    */
   useEffect(() => {
+    // 新規登録中は選択データがなくても編集状態を維持
+    if (isCreating) return;
+
     if (!selected) {
       setEdit(emptyEdit);
       setSaveError(null);
@@ -166,7 +174,7 @@ export default function PartnerMst() {
     setEdit(toEditState(selected));
     setSaveError(null);
     setFieldErrors({});
-  }, [selectedId, selected, isEditing]);
+  }, [selectedId, selected, isEditing, isCreating]);
 
   // -----------------------------
   // 一覧取得（依存は「値」だけ + reloadToken）
@@ -213,13 +221,27 @@ export default function PartnerMst() {
   const openDetail = useCallback(
     (p: Partner) => {
       setSelectedId(p.id);
+      setIsCreating(false);
       setIsEditing(false);
       setSaveError(null);
       setFieldErrors({});
       open();
-    },
-    [open]
+    }, [open]
   );
+
+
+  // -----------------------------
+  // 登録画面起動
+  // -----------------------------
+  const openCreate = useCallback(() => {
+    setSelectedId(null);
+    setEdit(emptyEdit);
+    setIsCreating(true);
+    setIsEditing(true);
+    setSaveError(null);
+    setFieldErrors({});
+    open();
+  }, [open]);
 
   // -----------------------------
   // 編集画面起動
@@ -227,13 +249,13 @@ export default function PartnerMst() {
   const openEdit = useCallback(
     (p: Partner) => {
       setSelectedId(p.id);
+      setIsCreating(false);
       setEdit(toEditState(p));
       setIsEditing(true);
       setSaveError(null);
       setFieldErrors({});
       open();
-    },
-    [open]
+    }, [open]
   );
 
   // -----------------------------
@@ -251,8 +273,7 @@ export default function PartnerMst() {
         console.error(ne.raw);
         flash.error(ne.message);
       }
-    },
-    [bumpReload, flash]
+    }, [bumpReload, flash]
   );
 
   // -----------------------------
@@ -271,8 +292,7 @@ export default function PartnerMst() {
         console.error(ne.raw);
         flash.error(ne.message);
       }
-    },
-    [bumpReload, flash]
+    }, [bumpReload, flash]
   );
 
   // -----------------------------
@@ -311,25 +331,47 @@ export default function PartnerMst() {
   }, [selected]);
 
   const cancelEdit = useCallback(() => {
+    // 新規登録キャンセル：閉じて初期化
+    if (isCreating) {
+      setIsEditing(false);
+      setIsCreating(false);
+      setEdit(emptyEdit);
+      setSaveError(null);
+      setFieldErrors({});
+      close();
+      return;
+    }
+
     if (!selected) {
       setIsEditing(false);
       setFieldErrors({});
       return;
     }
+
     setEdit(toEditState(selected));
     setIsEditing(false);
     setSaveError(null);
     setFieldErrors({});
-  }, [selected]);
+  }, [selected, isCreating, close]);
 
   const saveEdit = useCallback(async () => {
-    if (!selectedId) return;
-
     setFieldErrors({});
     setSaving(true);
     setSaveError(null);
 
     try {
+      if (isCreating) {
+        await createPartner(toUpdatePayload(edit));
+        setIsEditing(false);
+        setIsCreating(false);
+        setFieldErrors({});
+        bumpReload();
+        flash.success("登録しました");
+        close();
+        return;
+      }
+
+      if (!selectedId) return;
       await updatePartner(selectedId, toUpdatePayload(edit));
       setIsEditing(false);
       setFieldErrors({});
@@ -342,7 +384,7 @@ export default function PartnerMst() {
     } finally {
       setSaving(false);
     }
-  }, [selectedId, edit, bumpReload, flash]);
+  }, [isCreating, selectedId, edit, bumpReload, flash, close]);
 
   // -----------------------------
   // ソート：変更時は必ず 1ページ目へ
@@ -418,6 +460,12 @@ export default function PartnerMst() {
             />
             <span>削除済みを含める</span>
           </label>
+        </div>
+
+        <div className="ui-toolbar-right">
+            <button className="ui-btn-create" onClick={openCreate}>
+              新規登録
+            </button>
         </div>
 
         {/* Mobile sort */}
@@ -516,6 +564,7 @@ export default function PartnerMst() {
       <DetailSlideOver
         open={detailOpen}
         onClose={() => {
+          setIsCreating(false);
           setIsEditing(false);
           setSaveError(null);
           setFieldErrors({});
