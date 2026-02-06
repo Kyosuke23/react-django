@@ -1,4 +1,5 @@
 import { apiFetch } from "./api";
+import { parseOrThrow, isPaginated } from "./errors";
 
 // データ定義
 export type Tenant = {
@@ -55,26 +56,6 @@ function buildQuery(params?: ListParams) {
   return sp.toString();
 }
 
-async function parseOrThrow(res: Response) {
-  // DRFのバリデーションエラー等も拾えるようにしておく
-  let data: any = null;
-  const ct = res.headers.get("content-type") ?? "";
-  if (ct.includes("application/json")) data = await res.json();
-  else data = await res.text();
-
-  if (!res.ok) {
-    const msg =
-      typeof data === "string"
-        ? data
-        : data?.detail || "Request failed";
-    const err = new Error(msg);
-    (err as any).status = res.status;
-    (err as any).data = data;
-    throw err;
-  }
-  return data;
-}
-
 export async function listTenants(params?: ListParams): Promise<Tenant[]> {
   const qs = buildQuery(params);
   const url = qs ? `/api/tenants/?${qs}` : "/api/tenants/";
@@ -110,14 +91,14 @@ export async function getTenant(id: number): Promise<Tenant> {
   return (await parseOrThrow(res)) as Tenant;
 }
 
-export async function listTenantsPaged(params?: ListParams): Promise<Paginated<Tenant>> {
+export async function listPartnersPaged(params?: ListParams): Promise<Paginated<Tenant>> {
   const qs = buildQuery(params);
   const url = qs ? `/api/tenants/?${qs}` : "/api/tenants/";
   const res = await apiFetch(url, { method: "GET" });
   const data = await parseOrThrow(res);
 
   // DRF pagination対応
-  if (Array.isArray(data?.results)) {
+  if (isPaginated<Tenant>(data)) {
     return {
       items: data.results,
       count: data.count ?? data.results.length,

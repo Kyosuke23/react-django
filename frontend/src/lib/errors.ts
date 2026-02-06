@@ -1,6 +1,18 @@
+export class ApiError extends Error {
+  status?: number;
+  data?: unknown;
+
+  constructor(message: string, status?: number, data?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export type FieldErrors = Record<string, string[]>;
 
-function isRecord(v: unknown): v is Record<string, unknown> {
+export function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
@@ -60,4 +72,44 @@ export function normalizeApiError(e: unknown): NormalizedApiError {
 
   // その他（string とか）
   return { message: "エラーが発生しました", fieldErrors: null, raw: e };
+}
+
+export async function parseOrThrow(res: Response): Promise<unknown> {
+  // DRFのバリデーションエラー等も拾えるようにしておく
+  const ct = res.headers.get("content-type") ?? "";
+
+  let data: unknown;
+  if (ct.includes("application/json")) data = await res.json();
+  else data = await res.text();
+
+  if (!res.ok) {
+    // message をできるだけ良い形で拾う
+    let msg = "Request failed";
+    if (typeof data === "string") {
+      msg = data;
+    } else if (isRecord(data)) {
+      const detail = data["detail"];
+      if (typeof detail === "string") msg = detail;
+    }
+
+    throw new ApiError(msg, res.status, data);
+  }
+
+  return data;
+}
+
+/**
+ * DRF pagination 形式かどうかを判定する型ガード
+ */
+export function isPaginated<T>(v: unknown, isItem?: (x: unknown) => x is T): v is { results: T[]; count?: number } {
+  if (!isRecord(v)) return false;
+
+  const results = v["results"];
+  if (!Array.isArray(results)) return false;
+
+  // 中身チェックが渡されていれば使う
+  if (isItem) return results.every(isItem);
+
+  // 中身は信用する
+  return true;
 }
