@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Partner, PartnerUpdatePayload } from "../../lib/partners";
+import { exportCSV, type Partner, type PartnerUpdatePayload } from "../../lib/partners";
 import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
 import DataTable from "../common/components/DataTable";
 import type { SortDir } from "../common/components/DataTable";
@@ -407,6 +407,37 @@ export default function PartnerMst() {
   // -----------------------------
   const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
 
+
+  // -----------------------------
+  // CSV出力処理
+  // -----------------------------
+  const onExportCsv = useCallback(async () => {
+    try {
+      const { blob, filename } = await exportCSV({
+        q,
+        partner_type: partnerType || undefined,
+        include_deleted: includeDeleted,
+        ordering,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const ne = normalizeApiError(e);
+      console.error(ne.raw);
+      flash.error(ne.message);
+    }
+  }, [q, partnerType, includeDeleted, ordering, flash]);
+
+  // -----------------------------
+  // レンダリング
+  // -----------------------------
   return (
     <div className="ui-page">
       <h1 className="ui-page-title">取引先マスタ管理</h1>
@@ -463,6 +494,9 @@ export default function PartnerMst() {
         </div>
 
         <div className="ui-toolbar-right">
+            <button className="ui-btn-secondary" onClick={onExportCsv}>
+              CSVダウンロード
+            </button>
             <button className="ui-btn-create" onClick={openCreate}>
               新規登録
             </button>

@@ -146,3 +146,6 @@ REST_FRAMEWORK = {
 
 # ログインユーザーモデルの指定
 AUTH_USER_MODEL = "accounts.User"
+
+# 最大ダウンロード件数
+MAX_EXPORT_ROWS = 1000

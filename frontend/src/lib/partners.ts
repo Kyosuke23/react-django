@@ -54,7 +54,7 @@ type ListParams = {
   page_size?: number;
 };
 
-function buildQuery(params?: ListParams) {
+export function buildQuery(params?: ListParams) {
   const sp = new URLSearchParams();
   if (params?.q) sp.set("q", params.q);
   if (params?.partner_type) sp.set("partner_type", params.partner_type);
@@ -128,3 +128,19 @@ export async function listPartnersPaged(params?: ListParams): Promise<Paginated<
     count: Array.isArray(data) ? data.length : 0,
   };
 }
+
+export async function exportCSV(params?: ListParams): Promise<{ blob: Blob; filename: string }> {
+  const qs = buildQuery(params);
+  const url = qs ? `/api/partners/export/?${qs}` : "/api/partners/export";
+  const res = await apiFetch(url, {method: "GET" });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "CSVのダウンロードに失敗しました");
+  }
+
+  const blob = await res.blob();
+  const filename = "partners.csv";
+
+  return { blob, filename };
+};

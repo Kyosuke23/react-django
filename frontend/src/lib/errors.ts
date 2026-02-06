@@ -40,6 +40,11 @@ function hasData(e: unknown): e is ErrorWithData {
   return e instanceof Error && "data" in e;
 }
 
+/**
+ * 様々な形式で飛んでくるエラーを整形する
+ * @param e
+ * @returns { message: ユーザー表示用, fieldError: フォーム用, raw: 生データ }
+ */
 export function normalizeApiError(e: unknown): NormalizedApiError {
   // parseOrThrow が投げる「Error + data」を最優先で拾う
   if (hasData(e)) {

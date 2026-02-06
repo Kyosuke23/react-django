@@ -1,10 +1,12 @@
+import csv
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
+from config.settings import MAX_EXPORT_ROWS
 from .models import Partner
 from .serializers import PartnerSerializer
 
@@ -75,3 +77,35 @@ class PartnerViewSet(viewsets.ModelViewSet):
         obj.update_user = request.user
         obj.save(update_fields=["is_deleted", "update_user", "updated_at"])
         return Response(self.get_serializer(obj).data, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_csv(self, request):
+        qs = self.get_queryset()[:MAX_EXPORT_ROWS]
+
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="partners.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            "取引先名称", "取引先名称カナ", "区分", "担当者名", "電話番号", "Email",
+            "郵便番号", "都道府県", "市区町村", "住所", "建物名等", "削除済み",
+        ])
+
+        for p in qs:
+            writer.writerow([
+                p.partner_name,
+                p.partner_name_kana or "",
+                p.partner_type,
+                p.contact_name or "",
+                p.tel_number or "",
+                p.email,
+                p.postal_code or "",
+                p.state or "",
+                p.city or "",
+                p.address or "",
+                p.address2 or "",
+                "1" if p.is_deleted else "0",
+            ])
+
+        return response

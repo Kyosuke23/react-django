@@ -91,7 +91,7 @@ export async function getTenant(id: number): Promise<Tenant> {
   return (await parseOrThrow(res)) as Tenant;
 }
 
-export async function listPartnersPaged(params?: ListParams): Promise<Paginated<Tenant>> {
+export async function listTenantsPaged(params?: ListParams): Promise<Paginated<Tenant>> {
   const qs = buildQuery(params);
   const url = qs ? `/api/tenants/?${qs}` : "/api/tenants/";
   const res = await apiFetch(url, { method: "GET" });
