@@ -13,6 +13,7 @@ import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
 import DetailSlideOver from "./components/DetailSlideOver";
 import { normalizeApiError } from "../../lib/errors";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 
 type SortKey =
   | "partner_name"
@@ -488,9 +489,11 @@ export default function PartnerMst() {
           </label>
         </div>
 
-        <div className="ui-toolbar-right">
-            <button className="ui-btn-secondary" onClick={onExportCsv}>
-              CSVダウンロード
+        <div className="ui-toolbar-right flex items-center gap-3">
+            <button className="ui-btn-csv-dl" onClick={onExportCsv}>
+              <ArrowDownTrayIcon className="ui-icon-hw">
+                <span>CSV</span>
+              </ArrowDownTrayIcon>
             </button>
             <button className="ui-btn-create" onClick={openCreate}>
               新規登録
