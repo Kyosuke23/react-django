@@ -1,46 +1,89 @@
 import type { ReactNode } from "react";
 import { useEscapeKey } from "../../../hooks/useEscapeKey";
 
-type Props = {
+/**
+ * 明細ナビゲーションプロパティ
+ */
+export type NavProps = {
+  selectedIndex: number; // -1 のとき未選択
+  rowsLength: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  goPrev: () => void;
+  goNext: () => void;
+};
+
+/**
+ * 編集状態プロパティ
+ */
+export type EditProps = {
+  isEditing: boolean;
+  saving: boolean;
+  startEdit: () => void;
+  cancelEdit: () => void;
+  saveEdit: () => void;
+};
+
+/**
+ * フィールドエラープロパティ
+ */
+export type ErrorsProps = {
+  saveError: string | null;
+  fieldErrors: Record<string, string[]>;
+};
+
+/**
+ * 汎用プロパティ
+ */
+type Props<T> = {
   open: boolean;
   onClose: () => void;
-
-  /** Left side header texts */
+  selected: T | null;
   title?: ReactNode;
   subtitle?: ReactNode;
-
-  /** Right side header actions (e.g. 編集/保存ボタン) */
-  headerRight?: ReactNode;
-
   children: ReactNode;
 
-  /**
-   * Tailwind width classes for desktop. Mobile is always full width.
-   * Example: "sm:max-w-md" (default)
-   */
-  maxWidthClassName?: string;
+  nav: NavProps;
+  edit: EditProps;
+  errors: ErrorsProps;
 
-  /** Optional theme overrides */
+  isDeleted?: (row: T) => boolean;
+  maxWidthClassName?: string;
   panelClassName?: string;
   headerClassName?: string;
-
-  /** Close button control */
   showCloseButton?: boolean;
 };
 
-export default function SlideOver({
+export function FieldError({ messages }: { messages?: string[] }) {
+  if (!messages?.length) return null;
+  return <p className="mt-1 text-xs text-rose-400">{messages.join(", ")}</p>;
+}
+
+export default function SlideOver<T>({
   open,
   onClose,
+  selected,
   title,
   subtitle,
-  headerRight,
   children,
+  nav,
+  edit,
+  errors,
+  isDeleted,
   maxWidthClassName = "sm:max-w-md",
   panelClassName = "bg-slate-950 text-slate-100",
   headerClassName = "border-b border-slate-800",
   showCloseButton = true,
-}: Props) {
+}: Props<T>) {
   useEscapeKey(open, onClose);
+
+  const deleted = selected && isDeleted ? isDeleted(selected) : false;
+
+  const { selectedIndex, rowsLength, hasPrev, hasNext, goPrev, goNext } = nav;
+  const { isEditing, saving, startEdit, cancelEdit, saveEdit } = edit;
+  const { saveError, fieldErrors } = errors;
+
+  const nonField = fieldErrors.non_field_errors ?? [];
 
   return (
     <>
@@ -68,8 +111,8 @@ export default function SlideOver({
         aria-modal="true"
       >
         <div className="h-full flex flex-col">
-          {(title || subtitle || headerRight || showCloseButton) && (
-            <div className={["px-4 py-3 flex items-start gap-3", headerClassName].join(" ")}>
+          {(title || subtitle || showCloseButton) && (
+            <div className={["px-4 py-3 flex items-center gap-3", headerClassName].join(" ")}>
               {/* Left */}
               <div className="min-w-0 flex-1">
                 {subtitle && <div className="text-xs text-slate-400">{subtitle}</div>}
@@ -81,13 +124,79 @@ export default function SlideOver({
                   ))}
               </div>
 
-              {/* Right (actions + close) */}
+              {/* Right (actions) */}
               <div className="shrink-0 flex items-center gap-2">
-                {headerRight}
+                {!isEditing ? (
+                  <button
+                    type="button"
+                    className="ui-btn-edit"
+                    onClick={startEdit}
+                    disabled={!selected || deleted}
+                    title={deleted ? "削除済みは編集できません" : "編集"}
+                  >
+                    編集
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="ui-btn-cancel"
+                      onClick={cancelEdit}
+                      disabled={saving}
+                    >
+                      キャンセル
+                    </button>
+
+                    <button
+                      type="button"
+                      className="ui-btn-save"
+                      onClick={saveEdit}
+                      disabled={saving}
+                    >
+                      {saving ? "保存中..." : "保存"}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
 
+          {/* Footer: nav + errors */}
+          <div className="shrink-0 border-t border-slate-800 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="ui-btn-nav"
+                onClick={goPrev}
+                disabled={!hasPrev || isEditing}
+                title={isEditing ? "編集中は移動できません" : "前の明細"}
+              >
+                ← 前の明細
+              </button>
+
+              <div className="text-xs text-slate-400">
+                {selectedIndex >= 0 ? `${selectedIndex + 1} / ${rowsLength}` : ""}
+              </div>
+
+              <button
+                type="button"
+                className="ui-btn-nav"
+                onClick={goNext}
+                disabled={!hasNext || isEditing}
+                title={isEditing ? "編集中は移動できません" : "次の明細"}
+              >
+                次の明細 →
+              </button>
+            </div>
+
+            {nonField.length ? (
+              <pre className="ui-error-message">{nonField.join("\n")}</pre>
+            ) : saveError ? (
+              <pre className="ui-error-message">{saveError}</pre>
+            ) : null}
+          </div>
+
+          {/* Body */}
           <div className="flex-1 overflow-auto">{children}</div>
         </div>
       </aside>

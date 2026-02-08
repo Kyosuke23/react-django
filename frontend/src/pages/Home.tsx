@@ -31,11 +31,6 @@ export default function Home() {
     })();
   }, []);
 
-  const logout = () => {
-    clearTokens();
-    navigate("/login");
-  };
-
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">

@@ -1,16 +1,19 @@
 import { useMemo } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import SlideOver from "../../common/components/SlideOver";
-import type { Tenant } from "../../../lib/tenants";
+import type { Partner } from "../../../lib/partners";
 import { inputClass } from "../../common/features/commonUI";
 import PrefectureSelect from "../../common/components/PrefectureSelect";
 import type { NavProps, EditProps, ErrorsProps } from "../../common/components/SlideOver";
 import { FieldError } from "../../common/components/SlideOver";
 
-export type EditState = {
-  tenant_name: string;
-  representative_name: string;
-  email: string;
+type EditState = {
+  partner_name: string;
+  partner_name_kana: string;
+  partner_type: Partner["partner_type"];
+  contact_name: string;
   tel_number: string;
+  email: string;
   postal_code: string;
   state: string;
   city: string;
@@ -21,29 +24,40 @@ export type EditState = {
 type Props = {
   open: boolean;
   onClose: () => void;
-  selected: Tenant | null;
+  selected: Partner | null;
   nav: NavProps;
   edit: EditProps;
   errors: ErrorsProps;
   form: {
     editState: EditState;
-    setEdit: React.Dispatch<React.SetStateAction<EditState>>;
+    setEdit: Dispatch<SetStateAction<EditState>>;
   };
 };
 
-export default function DetailSlideOver(props: Props) {
-  const {
-    open,
-    onClose,
-    selected,
-    nav,
-    edit,
-    errors,
-    form,
-  } = props;
+function partnerTypeLabel(v: Partner["partner_type"]) {
+  switch (v) {
+    case "customer":
+      return "顧客";
+    case "supplier":
+      return "仕入先";
+    case "both":
+      return "顧客・仕入先";
+    default:
+      return v;
+  }
+}
 
+export default function DetailSlideOver(props: Props) {
+  const { open, onClose, selected, nav, edit, errors, form } = props;
   const { editState, setEdit } = form;
-  const title = useMemo(() => (edit.isEditing ? "データ編集" : "詳細データ"), [edit.isEditing]);
+
+  // 新規登録モード：selected が null でも edit.isEditing=true の状態で開く想定
+  const isCreate = selected == null && edit.isEditing;
+
+  const title = useMemo(() => {
+    if (isCreate) return "新規登録";
+    return edit.isEditing ? "データ編集" : "詳細データ";
+  }, [isCreate, edit.isEditing]);
 
   return (
     <SlideOver
@@ -51,73 +65,103 @@ export default function DetailSlideOver(props: Props) {
       onClose={onClose}
       selected={selected}
       title={title}
-      nav={ nav }
-      edit={ edit }
-      errors={ errors }
-      isDeleted={(t: Tenant) => t.is_deleted}
+      nav={nav}
+      edit={edit}
+      errors={errors}
+      isDeleted={(p: Partner) => p.is_deleted}
     >
-      {selected ? (
+      {selected || isCreate ? (
         edit.isEditing ? (
           <div className="space-y-3">
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                基本情報
-              </div>
+              <div className="ui-subtitle">基本情報</div>
+
               <div>
-                <label className="ui-label">テナント名称</label>
+                <label className="ui-label">取引先名称</label>
                 <input
-                  className={inputClass(!!errors.fieldErrors.tenant_name)}
-                  value={editState.tenant_name}
-                  onChange={(e) => setEdit((p) => ({ ...p, tenant_name: e.target.value }))}
+                  className={inputClass(!!errors.fieldErrors.partner_name)}
+                  value={editState.partner_name}
+                  onChange={(e) => setEdit((p) => ({ ...p, partner_name: e.target.value }))}
                   disabled={edit.saving}
                 />
-                <FieldError messages={errors.fieldErrors.tenant_name} />
+                <FieldError messages={errors.fieldErrors.partner_name} />
               </div>
+
               <div>
-                <label className="ui-label">代表者</label>
+                <label className="ui-label">取引先名称（カナ）</label>
                 <input
-                  className={inputClass(!!errors.fieldErrors.representative_name)}
-                  value={editState.representative_name}
-                  onChange={(e) => setEdit((p) => ({ ...p, representative_name: e.target.value }))}
+                  className={inputClass(!!errors.fieldErrors.partner_name_kana)}
+                  value={editState.partner_name_kana}
+                  onChange={(e) => setEdit((p) => ({ ...p, partner_name_kana: e.target.value }))}
                   disabled={edit.saving}
                 />
-                <FieldError messages={errors.fieldErrors.representative_name} />
+                <FieldError messages={errors.fieldErrors.partner_name_kana} />
+              </div>
+
+              <div>
+                <label className="ui-label">取引先区分</label>
+                <select
+                  className={inputClass(!!errors.fieldErrors.partner_type)}
+                  value={editState.partner_type}
+                  onChange={(e) =>
+                    setEdit((p) => ({
+                      ...p,
+                      partner_type: e.target.value as Partner["partner_type"],
+                    }))
+                  }
+                  disabled={edit.saving}
+                >
+                  <option value="customer">顧客</option>
+                  <option value="supplier">仕入先</option>
+                  <option value="both">顧客・仕入先</option>
+                </select>
+                <FieldError messages={errors.fieldErrors.partner_type} />
               </div>
             </div>
 
             {/* 連絡先情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                連絡先情報
-              </div>
+              <div className="ui-subtitle">連絡先情報</div>
+
               <div>
-                <label className="ui-label">Email</label>
+                <label className="ui-label">担当者名</label>
                 <input
-                  className={inputClass(!!errors.fieldErrors.email)}
-                  value={editState.email}
-                  onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
+                  className={inputClass(!!errors.fieldErrors.contact_name)}
+                  value={editState.contact_name}
+                  onChange={(e) => setEdit((p) => ({ ...p, contact_name: e.target.value }))}
                   disabled={edit.saving}
                 />
-                <FieldError messages={errors.fieldErrors.email} />
+                <FieldError messages={errors.fieldErrors.contact_name} />
               </div>
+
               <div>
-                <label className="ui-label">電話</label>
+                <label className="ui-label">電話番号</label>
                 <input
                   className={inputClass(!!errors.fieldErrors.tel_number)}
                   value={editState.tel_number}
                   onChange={(e) => setEdit((p) => ({ ...p, tel_number: e.target.value }))}
                   disabled={edit.saving}
+                  placeholder="例）03-1234-5678"
                 />
                 <FieldError messages={errors.fieldErrors.tel_number} />
+              </div>
+
+              <div>
+                <label className="ui-label">E-Mail</label>
+                <input
+                  className={inputClass(!!errors.fieldErrors.email)}
+                  value={editState.email}
+                  onChange={(e) => setEdit((p) => ({ ...p, email: e.target.value }))}
+                  disabled={edit.saving}
+                  placeholder="example@example.com"
+                />
+                <FieldError messages={errors.fieldErrors.email} />
               </div>
             </div>
 
             {/* 住所情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                住所情報
-              </div>
               <div>
                 <label className="ui-label">郵便番号</label>
                 <input
@@ -128,6 +172,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.postal_code} />
               </div>
+
               <PrefectureSelect
                 label="都道府県"
                 value={editState.state}
@@ -136,6 +181,7 @@ export default function DetailSlideOver(props: Props) {
                 error={!!errors.fieldErrors.state}
                 errorMessages={errors.fieldErrors.state}
               />
+
               <div>
                 <label className="ui-label">市区町村</label>
                 <input
@@ -146,6 +192,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.city} />
               </div>
+
               <div>
                 <label className="ui-label">住所</label>
                 <input
@@ -156,6 +203,7 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.address} />
               </div>
+
               <div>
                 <label className="ui-label">建物名等</label>
                 <input
@@ -168,32 +216,42 @@ export default function DetailSlideOver(props: Props) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : selected ? (
           <dl className="space-y-3">
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                基本情報
-              </div>
+              <div className="ui-subtitle">基本情報</div>
+
               <div className="ui-card">
-                <dt className="ui-label">テナント名称</dt>
-                <dd className="ui-value">{selected.tenant_name}</dd>
+                <dt className="ui-label">取引先名称</dt>
+                <dd className="ui-value">{selected.partner_name}</dd>
+              </div>
+
+              <div className="ui-card">
+                <dt className="ui-label">取引先名称（カナ）</dt>
+                <dd className="ui-value">{selected.partner_name_kana}</dd>
+              </div>
+
+              <div className="ui-card">
+                <dt className="ui-label">区分</dt>
+                <dd className="ui-value">{partnerTypeLabel(selected.partner_type)}</dd>
               </div>
             </div>
 
             {/* 連絡先情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                連絡先情報
-              </div>
+              <div className="ui-subtitle">連絡先情報</div>
+
               <div className="ui-card">
-                <dt className="ui-label">代表者</dt>
-                <dd className="ui-value">{selected.representative_name}</dd>
+                <dt className="ui-label">担当者名</dt>
+                <dd className="ui-value">{selected.contact_name}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">Email</dt>
                 <dd className="ui-value">{selected.email}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">電話</dt>
                 <dd className="ui-value">{selected.tel_number ?? "-"}</dd>
@@ -202,28 +260,25 @@ export default function DetailSlideOver(props: Props) {
 
             {/* 住所情報 */}
             <div className="ui-card ui-card-stack">
-              <div className="ui-subtitle">
-                住所情報
-              </div>
+              <div className="ui-subtitle">住所情報</div>
+
               <div className="ui-card">
                 <dt className="ui-label">郵便番号</dt>
                 <dd className="ui-value">{selected.postal_code ? `〒${selected.postal_code}` : null}</dd>
               </div>
+
               <div className="ui-card">
                 <dt className="ui-label">住所</dt>
                 <dd className="ui-value">
-                  {[
-                    selected.state,
-                    selected.city,
-                    selected.address,
-                    selected.address2,
-                  ]
+                  {[selected.state, selected.city, selected.address, selected.address2]
                     .filter(Boolean)
                     .join(" ")}
                 </dd>
               </div>
             </div>
           </dl>
+        ) : (
+          <div className="ui-value">新規登録を開始してください</div>
         )
       ) : (
         <div className="ui-value">行を選択してください</div>

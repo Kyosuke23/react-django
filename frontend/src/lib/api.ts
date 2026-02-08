@@ -41,8 +41,19 @@ export async function apiFetch(
 
   const headers = new Headers(init.headers ?? {});
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (!headers.has("Content-Type") && init.body) {
-    headers.set("Content-Type", "application/json");
+
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+
+  // body がある時に JSON と決め打ちしない（FormData を壊す）
+  if (!isFormData) {
+    const isFormData = init.body instanceof FormData;
+    if (!headers.has("Content-Type") && init.body && !isFormData) {
+      headers.set("Content-Type", "application/json");
+    }
+  } else {
+    // FormData のときは boundary をブラウザに任せるので触らない
+    headers.delete("Content-Type");
   }
 
   let res = await fetch(input, { ...init, headers });
@@ -57,12 +68,37 @@ export async function apiFetch(
 
     const retryHeaders = new Headers(init.headers ?? {});
     retryHeaders.set("Authorization", `Bearer ${newAccess}`);
-    if (!retryHeaders.has("Content-Type") && init.body) {
-      retryHeaders.set("Content-Type", "application/json");
+
+    const isFormDataRetry =
+      typeof FormData !== "undefined" && init.body instanceof FormData;
+
+    if (!isFormDataRetry) {
+      if (!retryHeaders.has("Content-Type") && init.body) {
+        retryHeaders.set("Content-Type", "application/json");
+      }
+    } else {
+      retryHeaders.delete("Content-Type");
     }
 
     res = await fetch(input, { ...init, headers: retryHeaders });
   }
 
   return res;
+}
+
+/**
+ * YYYYMMDDHHMMSS形式の日付を生成する
+ * @param d 指定の日付（デフォルト: 現在時刻）
+ * @returns フォーマットされた日付（YYYYMMDDHHMMSS形式）
+ */
+export function getYMDHMS(d = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    d.getFullYear() +
+    pad(d.getMonth() + 1) +
+    pad(d.getDate()) +
+    pad(d.getHours()) +
+    pad(d.getMinutes()) +
+    pad(d.getSeconds())
+  );
 }

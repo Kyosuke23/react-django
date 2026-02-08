@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'api',
     'accounts',
     'tenants',
+    'partners',
 ]
 
 MIDDLEWARE = [
@@ -139,7 +140,12 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 
 # ログインユーザーモデルの指定
 AUTH_USER_MODEL = "accounts.User"
+
+# 最大ダウンロード件数
+MAX_EXPORT_ROWS = 1000

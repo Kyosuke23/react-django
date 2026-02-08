@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Tenant } from "../../../lib/tenants";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { createActionColumn } from "../../common/components/ActionColumn";
 
 export function ColumnsTable(opts: {
   openEdit: (t: Tenant) => void;
@@ -39,50 +39,12 @@ export function ColumnsTable(opts: {
         sortKey: "tel_number",
         render: (t: Tenant) => t.tel_number ?? "-",
       },
-      {
-        id: "actions",
-        label: "",
-        render: (t: Tenant) => (
-          <div className="flex items-center justify-end gap-2">
-            <button
-              className="rounded-lg p-2 hover:bg-slate-100 disabled:opacity-40"
-              title="編集"
-              disabled={t.is_deleted}
-              onClick={(e) => {
-                e.stopPropagation();
-                openEdit(t);
-              }}
-            >
-              <PencilSquareIcon className="h-5 w-5 text-slate-600" />
-            </button>
-
-            {!t.is_deleted ? (
-              <button
-                className="rounded-lg p-2 hover:bg-slate-100"
-                title="削除"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClickDelete(t.id);
-                }}
-              >
-                <TrashIcon className="h-5 w-5 text-rose-600" />
-              </button>
-            ) : (
-              <button
-                className="rounded-lg px-3 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClickRestore(t.id);
-                }}
-              >
-                復元
-              </button>
-            )}
-          </div>
-        ),
-        thClassName: "text-right",
-        tdClassName: "text-right",
-      },
+      // Action列（共通部品）
+      createActionColumn<Tenant>({
+        onEdit: (obj) => openEdit(obj),
+        onDelete: (obj) => onClickDelete(obj.id),
+        onRestore: (obj) => onClickRestore(obj.id),
+      }),
     ],
     [openEdit, onClickDelete, onClickRestore]
   );

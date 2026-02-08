@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Tenant, TenantUpdatePayload } from "../../lib/tenants";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { type Partner, type PartnerUpdatePayload, buildQuery } from "../../lib/partners";
+import { exportCSV, importCSV, downloadBlob, isImportCsvSuccess } from "../../lib/io";
+import { getYMDHMS } from "../../lib/api";
 import { useRowNavigator } from "../../hooks/useRowNavigator";
-import { listTenantsPaged, deleteTenant, restoreTenant, updateTenant } from "../../lib/tenants";
+import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
 import DataTable from "../common/components/DataTable";
 import type { SortDir } from "../common/components/DataTable";
 import Pagination from "../common/components/Pagination";
@@ -11,21 +13,23 @@ import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
 import DetailSlideOver from "./components/DetailSlideOver";
 import { normalizeApiError } from "../../lib/errors";
-
+import { ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 
 type SortKey =
-  | "tenant_name"
-  | "representative_name"
+  | "partner_name"
+  | "partner_type"
   | "email"
   | "tel_number"
   | "created_at"
   | "updated_at";
 
 type EditState = {
-  tenant_name: string;
-  representative_name: string;
-  email: string;
+  partner_name: string;
+  partner_name_kana: string;
+  partner_type: Partner["partner_type"];
+  contact_name: string;
   tel_number: string;
+  email: string;
   postal_code: string;
   state: string;
   city: string;
@@ -34,10 +38,12 @@ type EditState = {
 };
 
 const emptyEdit: EditState = {
-  tenant_name: "",
-  representative_name: "",
-  email: "",
+  partner_name: "",
+  partner_name_kana: "",
+  partner_type: "customer",
+  contact_name: "",
   tel_number: "",
+  email: "",
   postal_code: "",
   state: "",
   city: "",
@@ -45,26 +51,30 @@ const emptyEdit: EditState = {
   address2: "",
 };
 
-function toEditState(t: Tenant): EditState {
+function toEditState(p: Partner): EditState {
   return {
-    tenant_name: t.tenant_name ?? "",
-    representative_name: t.representative_name ?? "",
-    email: t.email ?? "",
-    tel_number: t.tel_number ?? "",
-    postal_code: t.postal_code ?? "",
-    state: t.state ?? "",
-    city: t.city ?? "",
-    address: t.address ?? "",
-    address2: t.address2 ?? "",
+    partner_name: p.partner_name ?? "",
+    partner_name_kana: p.partner_name_kana ?? "",
+    partner_type: p.partner_type ?? "customer",
+    contact_name: p.contact_name ?? "",
+    tel_number: p.tel_number ?? "",
+    email: p.email ?? "",
+    postal_code: p.postal_code ?? "",
+    state: p.state ?? "",
+    city: p.city ?? "",
+    address: p.address ?? "",
+    address2: p.address2 ?? "",
   };
 }
 
-function toUpdatePayload(e: EditState): TenantUpdatePayload {
+function toUpdatePayload(e: EditState): PartnerUpdatePayload {
   return {
-    tenant_name: e.tenant_name,
-    representative_name: e.representative_name,
-    email: e.email,
+    partner_name: e.partner_name,
+    partner_name_kana: e.partner_name_kana || null,
+    partner_type: e.partner_type,
+    contact_name: e.contact_name || null,
     tel_number: e.tel_number || null,
+    email: e.email,
     postal_code: e.postal_code || null,
     state: e.state || null,
     city: e.city || null,
@@ -73,19 +83,28 @@ function toUpdatePayload(e: EditState): TenantUpdatePayload {
   };
 }
 
-export default function TenantMst() {
+const PARTNER_TYPE_OPTIONS = ["", "customer", "supplier", "both"] as const;
+type PartnerTypeFilter = (typeof PARTNER_TYPE_OPTIONS)[number];
+
+export default function PartnerMst() {
   // -----------------------------
   // フィルタ
   // -----------------------------
   const [q, setQ] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
+  const [partnerType, setPartnerType] = useState<PartnerTypeFilter>("");
 
   // -----------------------------
   // 一覧（rows は今ページのみ）
   // -----------------------------
-  const [rows, setRows] = useState<Tenant[]>([]);
+  const [rows, setRows] = useState<Partner[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // -----------------------------
+  // 登録
+  // -----------------------------
+  const [isCreating, setIsCreating] = useState(false);
 
   // -----------------------------
   // 編集
@@ -103,7 +122,7 @@ export default function TenantMst() {
   // -----------------------------
   // ソート
   // -----------------------------
-  const [sortKey, setSortKey] = useState<SortKey>("tenant_name");
+  const [sortKey, setSortKey] = useState<SortKey>("partner_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const ordering = useMemo(() => {
@@ -144,6 +163,9 @@ export default function TenantMst() {
    * - ★編集中は rows 更新が入っても edit を上書きしない（入力が消えるのを防止）
    */
   useEffect(() => {
+    // 新規登録中は選択データがなくても編集状態を維持
+    if (isCreating) return;
+
     if (!selected) {
       setEdit(emptyEdit);
       setSaveError(null);
@@ -156,7 +178,7 @@ export default function TenantMst() {
     setEdit(toEditState(selected));
     setSaveError(null);
     setFieldErrors({});
-  }, [selectedId, selected, isEditing]);
+  }, [selectedId, selected, isEditing, isCreating]);
 
   // -----------------------------
   // 一覧取得（依存は「値」だけ + reloadToken）
@@ -165,8 +187,9 @@ export default function TenantMst() {
     let alive = true;
 
     (async () => {
-      const data = await listTenantsPaged({
+      const data = await listPartnersPaged({
         q,
+        partner_type: partnerType || undefined,
         include_deleted: includeDeleted,
         ordering,
         page,
@@ -186,42 +209,57 @@ export default function TenantMst() {
         setFieldErrors({});
         close();
       }
-    })().catch(() => {
-      // 必要なら toast / console.error
+    })().catch((e) => {
+      console.error(e);
+      flash.error("一覧の取得に失敗しました");
     });
 
     return () => {
       alive = false;
     };
-  }, [q, includeDeleted, ordering, page, pageSize, reloadToken, selectedId, close]);
+  }, [q, partnerType, includeDeleted, ordering, page, pageSize, reloadToken, selectedId, close, flash]);
 
   // -----------------------------
   // 行クリック / 編集開始（アイコン）
   // -----------------------------
   const openDetail = useCallback(
-    (t: Tenant) => {
-      setSelectedId(t.id);
+    (p: Partner) => {
+      setSelectedId(p.id);
+      setIsCreating(false);
       setIsEditing(false);
       setSaveError(null);
       setFieldErrors({});
       open();
-    },
-    [open]
+    }, [open]
   );
+
+
+  // -----------------------------
+  // 登録画面起動
+  // -----------------------------
+  const openCreate = useCallback(() => {
+    setSelectedId(null);
+    setEdit(emptyEdit);
+    setIsCreating(true);
+    setIsEditing(true);
+    setSaveError(null);
+    setFieldErrors({});
+    open();
+  }, [open]);
 
   // -----------------------------
   // 編集画面起動
   // -----------------------------
   const openEdit = useCallback(
-    (t: Tenant) => {
-      setSelectedId(t.id);
-      setEdit(toEditState(t));
+    (p: Partner) => {
+      setSelectedId(p.id);
+      setIsCreating(false);
+      setEdit(toEditState(p));
       setIsEditing(true);
       setSaveError(null);
       setFieldErrors({});
       open();
-    },
-    [open]
+    }, [open]
   );
 
   // -----------------------------
@@ -229,11 +267,11 @@ export default function TenantMst() {
   // -----------------------------
   const onClickDelete = useCallback(
     async (id: number) => {
-      if (!confirm("このテナントを削除しますか？")) return;
+      if (!confirm("この取引先を削除しますか？")) return;
       try {
-        await deleteTenant(id);
+        await deletePartner(id);
         bumpReload();
-        flash.success("削除に成功しました")
+        flash.success("削除に成功しました");
       } catch (e: unknown) {
         const ne = normalizeApiError(e);
         console.error(ne.raw);
@@ -245,19 +283,21 @@ export default function TenantMst() {
   // -----------------------------
   // 復元
   // -----------------------------
-  const onClickRestore = useCallback(async (id: number) => {
-    if (!confirm("このテナントを復元しますか？")) return;
+  const onClickRestore = useCallback(
+    async (id: number) => {
+      if (!confirm("この取引先を復元しますか？")) return;
 
-    try {
-      await restoreTenant(id);
-      bumpReload();
-      flash.success("復元しました");
-    } catch (e: unknown) {
-      const ne = normalizeApiError(e);
-      console.error(ne.raw);
-      flash.error(ne.message);
-    }
-  }, [bumpReload, flash]);
+      try {
+        await restorePartner(id);
+        bumpReload();
+        flash.success("復元しました");
+      } catch (e: unknown) {
+        const ne = normalizeApiError(e);
+        console.error(ne.raw);
+        flash.error(ne.message);
+      }
+    }, [bumpReload, flash]
+  );
 
   // -----------------------------
   // 明細行移動（詳細表示）
@@ -283,26 +323,48 @@ export default function TenantMst() {
   }, [selected]);
 
   const cancelEdit = useCallback(() => {
+    // 新規登録キャンセル：閉じて初期化
+    if (isCreating) {
+      setIsEditing(false);
+      setIsCreating(false);
+      setEdit(emptyEdit);
+      setSaveError(null);
+      setFieldErrors({});
+      close();
+      return;
+    }
+
     if (!selected) {
       setIsEditing(false);
       setFieldErrors({});
       return;
     }
+
     setEdit(toEditState(selected));
     setIsEditing(false);
     setSaveError(null);
     setFieldErrors({});
-  }, [selected]);
+  }, [selected, isCreating, close]);
 
   const saveEdit = useCallback(async () => {
-    if (!selectedId) return;
-
     setFieldErrors({});
     setSaving(true);
     setSaveError(null);
 
     try {
-      await updateTenant(selectedId, toUpdatePayload(edit));
+      if (isCreating) {
+        await createPartner(toUpdatePayload(edit));
+        setIsEditing(false);
+        setIsCreating(false);
+        setFieldErrors({});
+        bumpReload();
+        flash.success("登録しました");
+        close();
+        return;
+      }
+
+      if (!selectedId) return;
+      await updatePartner(selectedId, toUpdatePayload(edit));
       setIsEditing(false);
       setFieldErrors({});
       bumpReload();
@@ -314,7 +376,7 @@ export default function TenantMst() {
     } finally {
       setSaving(false);
     }
-  }, [selectedId, edit, bumpReload, flash]);
+  }, [isCreating, selectedId, edit, bumpReload, flash, close]);
 
   // -----------------------------
   // ソート：変更時は必ず 1ページ目へ
@@ -322,6 +384,7 @@ export default function TenantMst() {
   const onSort = useCallback(
     (serverSortKey: string) => {
       const key = serverSortKey as SortKey;
+      console.log("onSort key =", serverSortKey);
       reset();
       if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
       else {
@@ -335,12 +398,90 @@ export default function TenantMst() {
   // -----------------------------
   // 明細テーブル定義
   // -----------------------------
-  const columns = ColumnsTable({openEdit, onClickDelete, onClickRestore});
+  const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
 
+  // -----------------------------
+  // CSV出力処理
+  // -----------------------------
+  const onExportCsv = useCallback(async () => {
+    try {
+      const { blob, filename } = await exportCSV({
+        path: "/api/partners/export",
+        query: buildQuery({
+          q,
+          partner_type: partnerType || undefined,
+          include_deleted: includeDeleted,
+          ordering,
+        }),
+        filename: `partners_${getYMDHMS()}.csv`,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+    } catch (e) {
+      const ne = normalizeApiError(e);
+      console.error(ne.raw);
+      flash.error(ne.message);
+    }
+  }, [q, partnerType, includeDeleted, ordering, flash]);
+
+  // -----------------------------
+  // 入力ファイル選択処理
+  // -----------------------------
+  const fileRef = useRef<HTMLInputElement>(null);
+  const openImport = () => fileRef.current?.click();
+
+  // -----------------------------
+  // CSV入力処理
+  // -----------------------------
+  const onImportCsv = useCallback(
+    async (file: File) => {
+      try {
+        const result = await importCSV({
+          path: "/api/partners/import/",
+          file,
+          errorFilename: `partners_import_errors_${getYMDHMS()}.csv`,
+        });
+
+        // 成功だが「エラーCSV」を返された（=取り込みは失敗扱い）
+        if (!result.ok) {
+          downloadBlob(result.blob, result.filename);
+          flash.error("CSVにエラーがありました。エラーファイルをダウンロードしました。");
+          // 全行正常のときだけ取り込む仕様なら、ここで reload しない
+          return;
+        }
+
+        // 通常成功（JSON: {count:number} を期待）
+        const json = result.json;
+        const count = isImportCsvSuccess(json) ? json.count : undefined;
+
+        flash.success(count != null ? `CSVを取り込みました（${count}件）` : "CSVを取り込みました");
+        bumpReload();
+        setFieldErrors({});
+      } catch (e: unknown) {
+        const ne = normalizeApiError(e);
+        console.error(ne.raw);
+        setFieldErrors(ne.fieldErrors ?? {});
+        flash.error(ne.message);
+      }
+    },
+    [flash, bumpReload]
+  );
+
+  // -----------------------------
+  // レンダリング
+  // -----------------------------
   return (
     <div className="ui-page">
-      <h1 className="ui-page-title">テナントマスタ管理</h1>
-      <div className="ui-page-desc">テナント情報管理ページ</div>
+      <h1 className="ui-page-title">取引先マスタ管理</h1>
+      <div className="ui-page-desc">取引先情報管理ページ</div>
 
       {/* Toolbar */}
       <div className="ui-toolbar">
@@ -354,8 +495,28 @@ export default function TenantMst() {
                 reset();
               }}
               className="ui-input-keyword"
-              placeholder="テナント名 / コード / Email / 電話…"
+              placeholder="取引先名 / カナ / Email / 電話 / 担当者…"
             />
+          </div>
+
+          <div className="w-full sm:w-35">
+            <label className="ui-field-label">取引先区分</label>
+            <select
+              value={partnerType}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (PARTNER_TYPE_OPTIONS.includes(v as PartnerTypeFilter)) {
+                  setPartnerType(v as PartnerTypeFilter);
+                  reset();
+                }
+              }}
+              className="ui-select"
+            >
+              <option value="">すべて</option>
+              <option value="customer">顧客</option>
+              <option value="supplier">仕入先</option>
+              <option value="both">顧客・仕入先</option>
+            </select>
           </div>
 
           <label className="ui-checkbox-row">
@@ -372,6 +533,33 @@ export default function TenantMst() {
           </label>
         </div>
 
+        <div className="ui-toolbar-right flex items-center gap-3">
+            <button className="ui-btn-csv" onClick={openImport}>
+              <ArrowUpTrayIcon className="ui-icon-hw" />
+                <span className="sr-only">CSV UL</span>
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                onImportCsv(file).finally(() => {
+                  e.target.value = "";
+                });
+              }}
+            />
+            <button className="ui-btn-csv" onClick={onExportCsv}>
+              <ArrowDownTrayIcon className="ui-icon-hw" />
+                <span className="sr-only">CSV DL</span>
+            </button>
+            <button className="ui-btn-create" onClick={openCreate}>
+              新規登録
+            </button>
+        </div>
+
         {/* Mobile sort */}
         <div className="ui-mobile-sort-area">
           <select
@@ -383,15 +571,15 @@ export default function TenantMst() {
               reset();
             }}
           >
-            <option value="tenant_name">テナント名称</option>
-            <option value="representative_name">代表者</option>
+            <option value="partner_name">取引先名</option>
+            <option value="partner_type">区分</option>
             <option value="email">Email</option>
             <option value="tel_number">電話</option>
             <option value="created_at">作成日</option>
             <option value="updated_at">更新日</option>
           </select>
           <button
-            className="ui-mobile-sort-btn"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
             onClick={() => {
               setSortDir((d) => (d === "asc" ? "desc" : "asc"));
               reset();
@@ -406,44 +594,45 @@ export default function TenantMst() {
       {/* Content */}
       <div className="ui-panel">
         <div className="ui-table-area">
-          <DataTable<Tenant>
+          <DataTable<Partner>
             rows={rows}
             columns={columns}
             className="h-full"
-            rowKey={(t) => t.id}
+            rowKey={(p) => p.id}
             activeSortKey={sortKey}
             activeSortDir={sortDir}
             onSort={onSort}
             onRowClick={openDetail}
-            rowClassName={(t) => (t.is_deleted ? "ui-is-deleted" : "")}
+            rowClassName={(p) => (p.is_deleted ? "ui-is-deleted" : "")}
           />
           <Pagination page={page} pageSize={DEFAULT_PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} />
         </div>
 
         {/* Mobile cards */}
         <div className="ui-mobile-list">
-          {rows.map((t) => {
+          {rows.map((p) => {
             const address = [
-              t.postal_code ? `〒${t.postal_code}` : null,
-              t.state,
-              t.city,
-              t.address,
-              t.address2,
+              p.postal_code ? `〒${p.postal_code}` : null,
+              p.state,
+              p.city,
+              p.address,
+              p.address2,
             ]
               .filter(Boolean)
               .join(" ");
 
             return (
               <button
-                key={t.id}
-                className={["ui-mobile-card", t.is_deleted ? "ui-is-deleted" : "",].join(" ")}
-                onClick={() => openDetail(t)}
+                key={p.id}
+                className={["ui-mobile-card", p.is_deleted ? "ui-is-deleted" : "",].join(" ")}
+                onClick={() => openDetail(p)}
               >
                 <div className="ui-mobile-card-content">
                   <div className="ui-mobile-card-row">
-                    <div className="ui-mobile-card-value-main">{t.tenant_name}</div>
-                    <div className="ui-mobile-card-value-sub">{t.email}</div>
-                    <div className="ui-mobile-card-value-sub">{t.tel_number ?? "-"}</div>
+                    <div className="ui-mobile-card-value-main">{p.partner_name}</div>
+                    <div className="ui-mobile-card-value-sub">{p.partner_name_kana}</div>
+                    <div className="ui-mobile-card-value-sub">{p.email}</div>
+                    <div className="ui-mobile-card-value-sub">{p.tel_number ?? "-"}</div>
                     {address && (
                       <div className="ui-mobile-card-value-sub" title={address}>
                         {address}
@@ -453,7 +642,7 @@ export default function TenantMst() {
 
                   <div className="ui-mobile-card-badge">
                     <span className="ui-badge-status">
-                      {t.is_deleted ? "削除済み" : "有効"}
+                      {p.is_deleted ? "削除済み" : "有効"}
                     </span>
                   </div>
                 </div>
@@ -467,6 +656,7 @@ export default function TenantMst() {
       <DetailSlideOver
         open={detailOpen}
         onClose={() => {
+          setIsCreating(false);
           setIsEditing(false);
           setSaveError(null);
           setFieldErrors({});
