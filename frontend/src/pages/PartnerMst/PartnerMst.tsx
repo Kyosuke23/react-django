@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { type Partner, type PartnerUpdatePayload, buildQuery } from "../../lib/partners";
-import { exportCSV } from "../../lib/io";
+import { exportCSV, importCSV, downloadBlob, isImportCsvSuccess } from "../../lib/io";
 import { getYMDHMS } from "../../lib/api";
 import { useRowNavigator } from "../../hooks/useRowNavigator";
 import { listPartnersPaged, deletePartner, restorePartner, updatePartner, createPartner } from "../../lib/partners";
@@ -13,7 +13,7 @@ import { useFlash } from "../common/components/Flash";
 import { ColumnsTable } from "./components/ColumnsTable";
 import DetailSlideOver from "./components/DetailSlideOver";
 import { normalizeApiError } from "../../lib/errors";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 
 type SortKey =
   | "partner_name"
@@ -433,6 +433,49 @@ export default function PartnerMst() {
   }, [q, partnerType, includeDeleted, ordering, flash]);
 
   // -----------------------------
+  // 入力ファイル選択処理
+  // -----------------------------
+  const fileRef = useRef<HTMLInputElement>(null);
+  const openImport = () => fileRef.current?.click();
+
+  // -----------------------------
+  // CSV入力処理
+  // -----------------------------
+  const onImportCsv = useCallback(
+    async (file: File) => {
+      try {
+        const result = await importCSV({
+          path: "/api/partners/import/",
+          file,
+          errorFilename: `partners_import_errors_${getYMDHMS()}.csv`,
+        });
+
+        // 成功だが「エラーCSV」を返された（=取り込みは失敗扱い）
+        if (!result.ok) {
+          downloadBlob(result.blob, result.filename);
+          flash.error("CSVにエラーがありました。エラーファイルをダウンロードしました。");
+          // 全行正常のときだけ取り込む仕様なら、ここで reload しない
+          return;
+        }
+
+        // 通常成功（JSON: {count:number} を期待）
+        const json = result.json;
+        const count = isImportCsvSuccess(json) ? json.count : undefined;
+
+        flash.success(count != null ? `CSVを取り込みました（${count}件）` : "CSVを取り込みました");
+        bumpReload();
+        setFieldErrors({});
+      } catch (e: unknown) {
+        const ne = normalizeApiError(e);
+        console.error(ne.raw);
+        setFieldErrors(ne.fieldErrors ?? {});
+        flash.error(ne.message);
+      }
+    },
+    [flash, bumpReload]
+  );
+
+  // -----------------------------
   // レンダリング
   // -----------------------------
   return (
@@ -491,10 +534,26 @@ export default function PartnerMst() {
         </div>
 
         <div className="ui-toolbar-right flex items-center gap-3">
-            <button className="ui-btn-csv-dl" onClick={onExportCsv}>
-              <ArrowDownTrayIcon className="ui-icon-hw">
-                <span>CSV</span>
-              </ArrowDownTrayIcon>
+            <button className="ui-btn-csv" onClick={openImport}>
+              <ArrowUpTrayIcon className="ui-icon-hw" />
+                <span className="sr-only">CSV UL</span>
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                onImportCsv(file).finally(() => {
+                  e.target.value = "";
+                });
+              }}
+            />
+            <button className="ui-btn-csv" onClick={onExportCsv}>
+              <ArrowDownTrayIcon className="ui-icon-hw" />
+                <span className="sr-only">CSV DL</span>
             </button>
             <button className="ui-btn-create" onClick={openCreate}>
               新規登録

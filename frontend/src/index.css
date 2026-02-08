@@ -205,8 +205,8 @@ body {
     @apply rounded-lg px-3 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700;
   }
 
-  /* CSVダウンロードボタン */
-  .ui-btn-csv-dl {
+  /* CSV入出力ボタン */
+  .ui-btn-csv {
     @apply inline-flex items-center justify-center gap-2
       rounded-lg px-3 py-2 text-sm transition
       border border-slate-700

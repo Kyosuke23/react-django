@@ -10,13 +10,13 @@ class Partner(BaseModel):
     PARTNER_TYPE_CHOICES = [
         ('customer', '顧客'),
         ('supplier', '仕入先'),
-        ('both', '両方'),
+        ('both', '顧客・仕入先'),
     ]
 
     PARTNER_TYPE_MAP = {
         '顧客': 'customer',
         '仕入先': 'supplier',
-        '両方': 'both',
+        '顧客・仕入先': 'both',
     }
 
     partner_name = models.CharField(
@@ -38,7 +38,7 @@ class Partner(BaseModel):
         choices=PARTNER_TYPE_CHOICES,
         default='customer',
         verbose_name='取引先区分',
-        help_text='取引先の区分を選択してください。（顧客・仕入先・両方）'
+        help_text='取引先の区分を選択してください。（顧客 / 仕入先 / 顧客・仕入先）'
     )
 
     contact_name = models.CharField(

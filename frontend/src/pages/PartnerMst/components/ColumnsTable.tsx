@@ -9,7 +9,7 @@ function partnerTypeLabel(v: Partner["partner_type"]) {
     case "supplier":
       return "仕入先";
     case "both":
-      return "両方";
+      return "顧客・仕入先";
     default:
       return v;
   }
