@@ -384,6 +384,7 @@ export default function PartnerMst() {
   const onSort = useCallback(
     (serverSortKey: string) => {
       const key = serverSortKey as SortKey;
+      console.log("onSort key =", serverSortKey);
       reset();
       if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
       else {

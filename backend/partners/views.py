@@ -2,7 +2,7 @@ import csv
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +15,7 @@ class PartnerViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     # ordering=partner_name などを許可
+    filter_backends = [filters.OrderingFilter]
     ordering_fields = [
         "partner_name",
         "partner_type",
