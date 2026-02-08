@@ -96,7 +96,7 @@ class PartnerViewSet(viewsets.ModelViewSet):
             writer.writerow([
                 p.partner_name,
                 p.partner_name_kana or "",
-                p.partner_type,
+                p.get_partner_type_display(),
                 p.contact_name or "",
                 p.tel_number or "",
                 p.email,
