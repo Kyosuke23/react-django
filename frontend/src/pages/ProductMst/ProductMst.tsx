@@ -19,7 +19,7 @@ import {
 } from "../../lib/products";
 
 import { listProductCategoryChoices, type CategoryChoice } from "../../lib/productCategories";
-
+import CategoryManageModal from "./components/CategoryManageModal";
 import { ColumnsTable } from "./components/ColumnsTable";
 import DetailSlideOver from "./components/DetailSlideOver";
 
@@ -133,6 +133,11 @@ export default function ProductMst() {
   const [detailOpen, setDetailOpen] = useState(false);
   const open = useCallback(() => setDetailOpen(true), []);
   const close = useCallback(() => setDetailOpen(false), []);
+
+  // -----------------------------
+  // 商品カテゴリ管理モーダル
+  // -----------------------------
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // -----------------------------
   // 再取得トリガ
@@ -390,12 +395,11 @@ export default function ProductMst() {
   const columns = ColumnsTable({ openEdit, onClickDelete, onClickRestore });
 
   // -----------------------------
-  // カテゴリ管理（モーダル/SlideOver）※次で実装
+  // カテゴリ管理（モーダル/SlideOver）
   // -----------------------------
   const onOpenCategoryManage = useCallback(() => {
-    flash.info("カテゴリ管理は次で実装します");
-    // 実装したら「閉じたタイミングで reloadCategoryChoices()」を呼ぶ
-  }, [flash]);
+    setCategoryModalOpen(true);
+  }, []);
 
   // -----------------------------
   // レンダリング
@@ -456,7 +460,7 @@ export default function ProductMst() {
         </div>
 
         <div className="ui-toolbar-right flex items-center gap-3">
-          <button className="ui-btn" onClick={onOpenCategoryManage}>
+          <button className="ui-btn-aux" onClick={onOpenCategoryManage}>
             カテゴリ管理
           </button>
           <button className="ui-btn-create" onClick={openCreate}>
@@ -529,6 +533,15 @@ export default function ProductMst() {
         errors={{ saveError, fieldErrors }}
         form={{ editState: edit, setEdit }}
         categoryChoices={categoryChoices}
+      />
+
+      {/* 商品カテゴリマスタ管理 */}
+      <CategoryManageModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onClosed={() => {
+          reloadCategoryChoices().catch((e) => console.error(e));
+        }}
       />
     </div>
   );

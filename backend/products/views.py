@@ -16,7 +16,6 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
     - q 検索（カテゴリ名）
     - ordering 対応
     """
-
     serializer_class = ProductCategorySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
@@ -88,7 +87,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     - category フィルタ
     - ordering 対応
     """
-
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]

@@ -3,9 +3,6 @@ from .models import Product, ProductCategory
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
-    # 必要ならレスポンスに含める（今は fields に入れてないと出ません）
-    product_ids = serializers.PrimaryKeyRelatedField(source="products", many=True, read_only=True)
-
     class Meta:
         model = ProductCategory
         fields = [
@@ -15,7 +12,6 @@ class ProductCategorySerializer(serializers.ModelSerializer):
             "is_deleted",
             "created_at",
             "updated_at",
-            # "product_ids",  # 使いたいなら追加
         ]
 
 

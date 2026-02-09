@@ -9,14 +9,20 @@ export type ProductCategory = {
   updated_at: string;
 };
 
+type DRFPagedResponse<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
+export type CategoryChoice = Pick<ProductCategory, "id" | "product_category_name">;
+
 export type ProductCategoryPayload = {
   product_category_name: string;
 };
 
-export type CategoryChoice = {
-  id: number;
-  product_category_name: string;
-};
+export type Paged<T> = { count: number; items: T[] };
 
 type ListParams = {
   q?: string;
@@ -36,42 +42,52 @@ function buildQuery(params?: ListParams) {
   return sp.toString();
 }
 
-export async function listProductCategoriesPaged(params: ListParams) {
+// choices（select用）
+export async function listProductCategoryChoices(params?: ListParams): Promise<CategoryChoice[]> {
+  const qs = buildQuery(params);
+  const res = await apiFetch(`/api/products/categories/choices/${qs ? `?${qs}` : ""}`);
+  return (await parseOrThrow(res)) as CategoryChoice[];
+}
+
+// 一覧（ページング）
+export async function listProductCategoriesPaged(params: ListParams): Promise<Paged<ProductCategory>> {
   const qs = buildQuery(params);
   const res = await apiFetch(`/api/products/categories/${qs ? `?${qs}` : ""}`);
-  const data = (await parseOrThrow(res)) as { count: number; results: ProductCategory[] };
-  return { count: data.count, items: data.results };
+  const json = await parseOrThrow(res) as DRFPagedResponse<ProductCategory>;
+
+  return {
+    count: Number(json.count ?? 0),
+    items: Array.isArray(json.results) ? json.results : [],
+  };
 }
 
-export async function createProductCategory(payload: ProductCategoryPayload) {
+// 作成
+export async function createProductCategory(payload: ProductCategoryPayload): Promise<ProductCategory> {
   const res = await apiFetch(`/api/products/categories/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   return (await parseOrThrow(res)) as ProductCategory;
 }
 
-export async function updateProductCategory(id: number, payload: Partial<ProductCategoryPayload>) {
+// 更新
+export async function updateProductCategory(id: number, payload: ProductCategoryPayload): Promise<ProductCategory> {
   const res = await apiFetch(`/api/products/categories/${id}/`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   return (await parseOrThrow(res)) as ProductCategory;
 }
 
-export async function deleteProductCategory(id: number) {
+// 論理削除（204想定）
+export async function deleteProductCategory(id: number): Promise<void> {
   const res = await apiFetch(`/api/products/categories/${id}/`, { method: "DELETE" });
-  await parseOrThrow(res);
+  // 失敗時だけ ApiError を投げたいので parseOrThrow に通す
+  if (!res.ok) await parseOrThrow(res);
 }
 
-export async function restoreProductCategory(id: number) {
+// 復元
+export async function restoreProductCategory(id: number): Promise<ProductCategory> {
   const res = await apiFetch(`/api/products/categories/${id}/restore/`, { method: "POST" });
   return (await parseOrThrow(res)) as ProductCategory;
-}
-
-export async function listProductCategoryChoices() {
-  const res = await apiFetch(`/api/products/categories/choices/`);
-  return (await parseOrThrow(res)) as CategoryChoice[];
 }
