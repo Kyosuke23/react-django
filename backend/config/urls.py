@@ -28,4 +28,5 @@ urlpatterns = [
     # マスタ系
     path("api/tenants/", include("tenants.urls")), # テナントマスタ
     path("api/partners/", include("partners.urls")), # 取引先マスタ
+    path("api/products/", include("products.urls")), # 商品マスタ
 ]
