@@ -1,5 +1,5 @@
 import { apiFetch } from "./api";
-import { parseOrThrow, isPaginated } from "./errors";
+import { parseOrThrow } from "./errors";
 
 // データ定義
 export type Tenant = {
@@ -93,21 +93,7 @@ export async function getTenant(id: number): Promise<Tenant> {
 
 export async function listTenantsPaged(params?: ListParams): Promise<Paginated<Tenant>> {
   const qs = buildQuery(params);
-  const url = qs ? `/api/tenants/?${qs}` : "/api/tenants/";
-  const res = await apiFetch(url, { method: "GET" });
-  const data = await parseOrThrow(res);
-
-  // DRF pagination対応
-  if (isPaginated<Tenant>(data)) {
-    return {
-      items: data.results,
-      count: data.count ?? data.results.length,
-    };
-  }
-
-  // フォールバック（未ページング時）
-  return {
-    items: Array.isArray(data) ? data : [],
-    count: Array.isArray(data) ? data.length : 0,
-  };
+  const res = await apiFetch(`/api/tenants/${qs ? `?${qs}` : ""}`);
+  const data = (await parseOrThrow(res)) as { count: number; results: Tenant[] };
+  return { count: data.count, items: data.results };
 }

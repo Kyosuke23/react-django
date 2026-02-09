@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import ApiCheck from "./pages/ApiCheck";
 import TenantMst from "./pages/TenantMst/TenantMst";
 import PartnerMst from "./pages/PartnerMst/PartnerMst";
+import ProductMst from "./pages/ProductMst/ProductMst";
 import Login from "./pages/Login";
 import ProtectedRoute from "./pages/common/components/ProtectedRoute";
 
@@ -91,6 +92,7 @@ export default function App() {
                 <SideNavLink to="/api_check" label="API Check" />
                 <SideNavLink to="/tenant_mst" label="テナントマスタ" />
                 <SideNavLink to="/partner_mst" label="取引先マスタ" />
+                <SideNavLink to="/product_mst" label="商品マスタ" />
               </nav>
 
               <div className="mt-auto pt-4">
@@ -142,6 +144,7 @@ export default function App() {
                     <SideNavLink to="/api_check" label="API Check" />
                     <SideNavLink to="/tenant_mst" label="テナントマスタ" />
                     <SideNavLink to="/partner_mst" label="取引先マスタ" />
+                    <SideNavLink to="/product_mst" label="商品マスタ" />
                   </nav>
 
                   <div className="mt-auto pt-4">
@@ -198,6 +201,14 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <PartnerMst />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/product_mst"
+                  element={
+                    <ProtectedRoute>
+                      <ProductMst />
                     </ProtectedRoute>
                   }
                 />

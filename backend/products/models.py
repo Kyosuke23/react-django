@@ -75,25 +75,33 @@ class Product(BaseModel):
 
 
 class ProductCategory(BaseModel):
-    '''
+    """
     商品カテゴリマスタ
     - 商品の分類情報を管理
-    '''
+    """
+
     class Meta:
-        verbose_name = '商品カテゴリ'
-        verbose_name_plural = '商品カテゴリマスタ'
-        ordering = ['product_category_name']
+        verbose_name = "商品カテゴリ"
+        verbose_name_plural = "商品カテゴリマスタ"
+        ordering = ["sort", "product_category_name"]
         constraints = [
             models.UniqueConstraint(
-                fields=['tenant', 'product_category_name'],
-                name='uq_tenant_product_category_name'
+                fields=["tenant", "product_category_name"],
+                name="uq_tenant_product_category_name",
             )
         ]
 
     product_category_name = models.CharField(
         max_length=100,
-        verbose_name='商品カテゴリ名称',
-        help_text='100文字以内で入力してください。'
+        verbose_name="商品カテゴリ名称",
+        help_text="100文字以内で入力してください。",
+    )
+
+    # ★ 並び順
+    sort = models.PositiveIntegerField(
+        default=0,
+        verbose_name="表示順",
+        help_text="小さいほど上に表示されます。",
     )
 
     def __str__(self):

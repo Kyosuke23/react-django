@@ -128,19 +128,3 @@ export async function parseOrThrow(res: Response): Promise<unknown> {
 
   return data;
 }
-
-/**
- * DRF pagination 形式かどうかを判定する型ガード
- */
-export function isPaginated<T>(v: unknown, isItem?: (x: unknown) => x is T): v is { results: T[]; count?: number } {
-  if (!isRecord(v)) return false;
-
-  const results = v["results"];
-  if (!Array.isArray(results)) return false;
-
-  // 中身チェックが渡されていれば使う
-  if (isItem) return results.every(isItem);
-
-  // 中身は信用する
-  return true;
-}

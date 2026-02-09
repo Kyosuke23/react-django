@@ -1,5 +1,5 @@
 import { apiFetch } from "./api";
-import { parseOrThrow, isPaginated } from "./errors";
+import { parseOrThrow } from "./errors";
 
 // データ定義
 export type Partner = {
@@ -110,21 +110,7 @@ export type Paginated<T> = {
 
 export async function listPartnersPaged(params?: ListParams): Promise<Paginated<Partner>> {
   const qs = buildQuery(params);
-  const url = qs ? `/api/partners/?${qs}` : "/api/partners/";
-  const res = await apiFetch(url, { method: "GET" });
-  const data = await parseOrThrow(res);
-
-  // DRF pagination対応
-  if (isPaginated<Partner>(data)) {
-    return {
-      items: data.results,
-      count: data.count ?? data.results.length,
-    };
-  }
-
-  // フォールバック（未ページング時）
-  return {
-    items: Array.isArray(data) ? data : [],
-    count: Array.isArray(data) ? data.length : 0,
-  };
+  const res = await apiFetch(`/api/partners/${qs ? `?${qs}` : ""}`);
+  const data = (await parseOrThrow(res)) as { count: number; results: Partner[] };
+  return { count: data.count, items: data.results };
 }
