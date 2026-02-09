@@ -343,10 +343,10 @@ export default function CategoryManageModal(props: {
               </div>
               <div className="flex items-center justify-end gap-2">
                 <button className="ui-btn-cancel" onClick={close}>
-                  閉じる
+                  キャンセル
                 </button>
                 <button className="ui-btn-create" onClick={openCreate}>
-                  新規
+                  新規登録
                 </button>
               </div>
             </div>
