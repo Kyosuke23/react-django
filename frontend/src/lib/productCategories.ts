@@ -38,13 +38,13 @@ function buildQuery(params?: ListParams) {
 
 export async function listProductCategoriesPaged(params: ListParams) {
   const qs = buildQuery(params);
-  const res = await apiFetch(`/api/product-categories/${qs ? `?${qs}` : ""}`);
+  const res = await apiFetch(`/api/products/categories/${qs ? `?${qs}` : ""}`);
   const data = (await parseOrThrow(res)) as { count: number; results: ProductCategory[] };
   return { count: data.count, items: data.results };
 }
 
 export async function createProductCategory(payload: ProductCategoryPayload) {
-  const res = await apiFetch(`/api/product-categories/`, {
+  const res = await apiFetch(`/api/products/categories/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -53,7 +53,7 @@ export async function createProductCategory(payload: ProductCategoryPayload) {
 }
 
 export async function updateProductCategory(id: number, payload: Partial<ProductCategoryPayload>) {
-  const res = await apiFetch(`/api/product-categories/${id}/`, {
+  const res = await apiFetch(`/api/products/categories/${id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -62,16 +62,16 @@ export async function updateProductCategory(id: number, payload: Partial<Product
 }
 
 export async function deleteProductCategory(id: number) {
-  const res = await apiFetch(`/api/product-categories/${id}/`, { method: "DELETE" });
+  const res = await apiFetch(`/api/products/categories/${id}/`, { method: "DELETE" });
   await parseOrThrow(res);
 }
 
 export async function restoreProductCategory(id: number) {
-  const res = await apiFetch(`/api/product-categories/${id}/restore/`, { method: "POST" });
+  const res = await apiFetch(`/api/products/categories/${id}/restore/`, { method: "POST" });
   return (await parseOrThrow(res)) as ProductCategory;
 }
 
 export async function listProductCategoryChoices() {
-  const res = await apiFetch(`/api/product-categories/choices/`);
+  const res = await apiFetch(`/api/products/categories/choices/`);
   return (await parseOrThrow(res)) as CategoryChoice[];
 }
