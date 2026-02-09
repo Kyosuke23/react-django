@@ -4,21 +4,14 @@ import SlideOver from "../../common/components/SlideOver";
 import type { Product } from "../../../lib/products";
 import type { CategoryChoice } from "../../../lib/productCategories";
 import { inputClass } from "../../common/features/commonUI";
-import type {
-  NavProps,
-  EditProps,
-  ErrorsProps,
-} from "../../common/components/SlideOver";
+import type { NavProps, EditProps, ErrorsProps } from "../../common/components/SlideOver";
 import { FieldError } from "../../common/components/SlideOver";
 
 type EditState = {
-  product_code: string;
   product_name: string;
-  product_name_kana: string;
-  product_category: number | ""; // 未選択は ""
+  product_category: number | "";
   unit_price: string;
-  tax_rate: string;
-  remarks: string;
+  description: string;
 };
 
 type Props = {
@@ -79,20 +72,6 @@ export default function DetailSlideOver(props: Props) {
               <div className="ui-subtitle">基本情報</div>
 
               <div>
-                <label className="ui-label">商品コード</label>
-                <input
-                  className={inputClass(!!errors.fieldErrors.product_code)}
-                  value={editState.product_code}
-                  onChange={(e) =>
-                    setEdit((p) => ({ ...p, product_code: e.target.value }))
-                  }
-                  disabled={edit.saving}
-                  placeholder="例）P-001"
-                />
-                <FieldError messages={errors.fieldErrors.product_code} />
-              </div>
-
-              <div>
                 <label className="ui-label">商品名</label>
                 <input
                   className={inputClass(!!errors.fieldErrors.product_name)}
@@ -104,23 +83,6 @@ export default function DetailSlideOver(props: Props) {
                   placeholder="例）りんご"
                 />
                 <FieldError messages={errors.fieldErrors.product_name} />
-              </div>
-
-              <div>
-                <label className="ui-label">商品名（カナ）</label>
-                <input
-                  className={inputClass(!!errors.fieldErrors.product_name_kana)}
-                  value={editState.product_name_kana}
-                  onChange={(e) =>
-                    setEdit((p) => ({
-                      ...p,
-                      product_name_kana: e.target.value,
-                    }))
-                  }
-                  disabled={edit.saving}
-                  placeholder="例）リンゴ"
-                />
-                <FieldError messages={errors.fieldErrors.product_name_kana} />
               </div>
 
               <div>
@@ -166,21 +128,6 @@ export default function DetailSlideOver(props: Props) {
                 />
                 <FieldError messages={errors.fieldErrors.unit_price} />
               </div>
-
-              <div>
-                <label className="ui-label">税率</label>
-                <input
-                  className={inputClass(!!errors.fieldErrors.tax_rate)}
-                  value={editState.tax_rate}
-                  onChange={(e) =>
-                    setEdit((p) => ({ ...p, tax_rate: e.target.value }))
-                  }
-                  disabled={edit.saving}
-                  inputMode="decimal"
-                  placeholder="例）10"
-                />
-                <FieldError messages={errors.fieldErrors.tax_rate} />
-              </div>
             </div>
 
             {/* 備考 */}
@@ -190,16 +137,16 @@ export default function DetailSlideOver(props: Props) {
               <div>
                 <label className="ui-label">備考</label>
                 <textarea
-                  className={inputClass(!!errors.fieldErrors.remarks)}
-                  value={editState.remarks}
+                  className={inputClass(!!errors.fieldErrors.description)}
+                  value={editState.description}
                   onChange={(e) =>
-                    setEdit((p) => ({ ...p, remarks: e.target.value }))
+                    setEdit((p) => ({ ...p, description: e.target.value }))
                   }
                   disabled={edit.saving}
                   rows={4}
                   placeholder="任意"
                 />
-                <FieldError messages={errors.fieldErrors.remarks} />
+                <FieldError messages={errors.fieldErrors.description} />
               </div>
             </div>
           </div>
@@ -208,24 +155,10 @@ export default function DetailSlideOver(props: Props) {
             {/* 基本情報 */}
             <div className="ui-card ui-card-stack">
               <div className="ui-subtitle">基本情報</div>
-
-              <div className="ui-card">
-                <dt className="ui-label">商品コード</dt>
-                <dd className="ui-value">{selected.product_code}</dd>
-              </div>
-
               <div className="ui-card">
                 <dt className="ui-label">商品名</dt>
                 <dd className="ui-value">{selected.product_name}</dd>
               </div>
-
-              <div className="ui-card">
-                <dt className="ui-label">商品名（カナ）</dt>
-                <dd className="ui-value">
-                  {selected.product_name_kana || "-"}
-                </dd>
-              </div>
-
               <div className="ui-card">
                 <dt className="ui-label">カテゴリ</dt>
                 <dd className="ui-value">{selectedCategoryName || "-"}</dd>
@@ -235,26 +168,19 @@ export default function DetailSlideOver(props: Props) {
             {/* 価格情報 */}
             <div className="ui-card ui-card-stack">
               <div className="ui-subtitle">価格情報</div>
-
               <div className="ui-card">
                 <dt className="ui-label">単価</dt>
                 <dd className="ui-value">{selected.unit_price ?? "-"}</dd>
-              </div>
-
-              <div className="ui-card">
-                <dt className="ui-label">税率</dt>
-                <dd className="ui-value">{selected.tax_rate ?? "-"}</dd>
               </div>
             </div>
 
             {/* 備考 */}
             <div className="ui-card ui-card-stack">
               <div className="ui-subtitle">備考</div>
-
               <div className="ui-card">
                 <dt className="ui-label">備考</dt>
                 <dd className="ui-value whitespace-pre-wrap">
-                  {selected.remarks || "-"}
+                  {selected.description || "-"}
                 </dd>
               </div>
             </div>

@@ -93,13 +93,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = [
-        "product_code",
+        "id",
         "product_name",
         "unit_price",
         "created_at",
         "updated_at",
     ]
-    ordering = ["product_code"]
+    ordering = ["id"]
 
     def get_queryset(self):
         qs = Product.objects.filter(tenant=self.request.user.tenant)
@@ -120,10 +120,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         q = (self.request.query_params.get("q") or "").strip()
         if q:
             qs = qs.filter(
-                Q(product_code__icontains=q)
-                | Q(product_name__icontains=q)
-                | Q(product_name_kana__icontains=q)
-                | Q(remarks__icontains=q)
+                Q(product_name__icontains=q)
+                | Q(description__icontains=q)
             )
 
         return qs.select_related("product_category")

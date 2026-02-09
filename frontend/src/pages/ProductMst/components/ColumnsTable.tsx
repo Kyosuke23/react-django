@@ -18,10 +18,6 @@ export function ColumnsTable(opts: {
         render: (p: Product) => (
           <div className="min-w-0">
             <div className="font-medium text-slate-100 truncate">{p.product_name}</div>
-            <div className="text-xs text-slate-400/80 truncate">
-              {p.product_code}
-              {p.product_name_kana ? ` / ${p.product_name_kana}` : ""}
-            </div>
           </div>
         ),
       },
@@ -41,19 +37,11 @@ export function ColumnsTable(opts: {
         ),
       },
       {
-        id: "tax_rate",
-        label: "税率",
-        // backend の ordering_fields に tax_rate を入れてないなら sortKey は付けない
-        render: (p: Product) => (
-          <span className="tabular-nums">{p.tax_rate ?? "-"}</span>
-        ),
-      },
-      {
-        id: "remarks",
+        id: "description",
         label: "備考",
         render: (p: Product) => (
-          <div className="max-w-[360px] truncate text-sm text-slate-300" title={p.remarks ?? ""}>
-            {p.remarks || "-"}
+          <div className="max-w-[360px] truncate text-sm text-slate-300" title={p.description ?? ""}>
+            {p.description || "-"}
           </div>
         ),
       },

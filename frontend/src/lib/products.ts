@@ -3,27 +3,21 @@ import { parseOrThrow } from "./errors";
 
 export type Product = {
   id: number;
-  product_code: string;
   product_name: string;
-  product_name_kana: string | null;
   product_category: number | null;
   product_category_name: string | null;
   unit_price: string; // DRF Decimalは文字列で来ることが多い
-  tax_rate: string;
-  remarks: string | null;
+  description: string | null;
   is_deleted: boolean;
   created_at: string;
   updated_at: string;
 };
 
 export type ProductPayload = {
-  product_code: string;
   product_name: string;
-  product_name_kana?: string | null;
   product_category?: number | null;
   unit_price?: number | null;
-  tax_rate?: number | null;
-  remarks?: string | null;
+  description?: string | null;
 };
 
 type ListParams = {

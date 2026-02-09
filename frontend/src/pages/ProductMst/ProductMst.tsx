@@ -23,49 +23,37 @@ import { listProductCategoryChoices, type CategoryChoice } from "../../lib/produ
 import { ColumnsTable } from "./components/ColumnsTable";
 import DetailSlideOver from "./components/DetailSlideOver";
 
-type SortKey = "product_name" | "product_code" | "unit_price" | "created_at" | "updated_at";
+type SortKey = "product_name" | "unit_price" | "created_at" | "updated_at";
 
 type EditState = {
-  product_code: string;
   product_name: string;
-  product_name_kana: string;
   product_category: number | "";
   unit_price: string;
-  tax_rate: string;
-  remarks: string;
+  description: string;
 };
 
 const emptyEdit: EditState = {
-  product_code: "",
   product_name: "",
-  product_name_kana: "",
   product_category: "",
   unit_price: "",
-  tax_rate: "",
-  remarks: "",
+  description: "",
 };
 
 function toEditState(p: Product): EditState {
   return {
-    product_code: p.product_code ?? "",
     product_name: p.product_name ?? "",
-    product_name_kana: p.product_name_kana ?? "",
     product_category: p.product_category ?? "",
     unit_price: p.unit_price != null ? String(p.unit_price) : "",
-    tax_rate: p.tax_rate != null ? String(p.tax_rate) : "",
-    remarks: p.remarks ?? "",
+    description: p.description ?? "",
   };
 }
 
 function toPayload(e: EditState): ProductPayload {
   return {
-    product_code: e.product_code,
     product_name: e.product_name,
-    product_name_kana: e.product_name_kana || null,
     product_category: e.product_category === "" ? null : e.product_category,
     unit_price: e.unit_price === "" ? null : Number(e.unit_price),
-    tax_rate: e.tax_rate === "" ? null : Number(e.tax_rate),
-    remarks: e.remarks || null,
+    description: e.description || null,
   };
 }
 
@@ -429,7 +417,7 @@ export default function ProductMst() {
                 reset();
               }}
               className="ui-input-keyword"
-              placeholder="商品コード / 商品名 / カナ / 備考…"
+              placeholder="商品名 / 商品カテゴリ名称"
             />
           </div>
 
@@ -488,7 +476,6 @@ export default function ProductMst() {
             }}
           >
             <option value="product_name">商品名</option>
-            <option value="product_code">商品コード</option>
             <option value="unit_price">単価</option>
             <option value="created_at">作成日</option>
             <option value="updated_at">更新日</option>
