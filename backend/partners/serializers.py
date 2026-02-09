@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Partner
 
-class PartnerSerializer(serializers.ModelSerializer):
+class Serializer(serializers.ModelSerializer):
     tenant_code = serializers.CharField(source="tenant.tenant_code", read_only=True)
     tenant_name = serializers.CharField(source="tenant.tenant_name", read_only=True)
 
