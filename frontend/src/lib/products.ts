@@ -6,7 +6,7 @@ export type Product = {
   product_name: string;
   product_category: number | null;
   product_category_name: string | null;
-  unit_price: string; // DRF Decimalは文字列で来ることが多い
+  unit_price: string;
   description: string | null;
   is_deleted: boolean;
   created_at: string;
@@ -73,4 +73,13 @@ export async function deleteProduct(id: number) {
 export async function restoreProduct(id: number) {
   const res = await apiFetch(`/api/products/${id}/restore/`, { method: "POST" });
   return (await parseOrThrow(res)) as Product;
+}
+
+/**
+ * CSV export のURLを返す
+ * - apiFetch は使わず、ブラウザ遷移でダウンロードさせる
+ */
+export function buildProductExportUrl(params?: ListParams) {
+  const qs = buildQuery(params);
+  return qs ? `/api/products/export/?${qs}` : `/api/products/export/`;
 }

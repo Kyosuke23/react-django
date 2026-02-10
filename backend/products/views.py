@@ -172,6 +172,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         for p in qs:
             writer.writerow(to_csv_row(p))
 
-        # 「上限で切った」ことがクライアントで分かるようにヘッダで通知（任意）
+        # 「上限で切った」ことがクライアントで分かるようにヘッダで通知
         response["X-Export-Limit"] = str(MAX_EXPORT_ROWS)
         return response
