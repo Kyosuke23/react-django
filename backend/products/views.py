@@ -1,3 +1,7 @@
+import csv
+from datetime import timezone
+from django.http import HttpResponse
+from config.settings import MAX_EXPORT_ROWS
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from rest_framework import viewsets, status, filters
@@ -6,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Product, ProductCategory
 from .serializers import ProductSerializer, ProductCategorySerializer
+from products.services.product_csv_importer import CSV_HEADERS, to_csv_row
 
 
 class ProductCategoryViewSet(viewsets.ModelViewSet):
@@ -151,3 +156,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         obj.update_user = request.user
         obj.save(update_fields=["is_deleted", "update_user", "updated_at"])
         return Response(self.get_serializer(obj).data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_csv(self, request):
+        """
+        商品CSV出力
+        """
+        qs = self.get_queryset()[:MAX_EXPORT_ROWS]
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        ts = timezone.now().strftime("%Y%m%d_%H%M%S")
+        response["Content-Disposition"] = f'attachment; filename="products_{ts}.csv"'
+        writer = csv.writer(response, lineterminator="\n")
+        writer.writerow(CSV_HEADERS)
+
+        for p in qs:
+            writer.writerow(to_csv_row(p))
+
+        # 「上限で切った」ことがクライアントで分かるようにヘッダで通知（任意）
+        response["X-Export-Limit"] = str(MAX_EXPORT_ROWS)
+        return response
